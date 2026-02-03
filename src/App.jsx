@@ -162,8 +162,20 @@ function App() {
             />
             </section>
 
+            {/* Command Panel - Right Side (1/4 width) */}
+            <section className="col-span-1 row-span-2 bg-gray-800 overflow-y-auto">
+            <CommandPanel
+                mode={mode}
+                activeLine={activeLine}
+                totalLines={codeLines.length}
+                statusMessage={statusMessage}
+                onModeChange={handleModeChange}
+                onCommandExecute={handleCommandExecution}
+            />
+            </section>
+            
             {/* Terminal - Bottom Left (3/4 width) */}
-            <section className="col-span-1 row-span-2 bg-gray-800 overflow-hidden">
+            <section className="col-span-1 row-span-1 bg-gray-800 overflow-hidden">
             <Terminal
                 mode={mode}
                 terminalOutput={terminalOutput}
@@ -178,17 +190,6 @@ function App() {
             />
             </section>
 
-            {/* Command Panel - Right Side (1/4 width) */}
-            <section className="col-span-2 row-span-1 bg-gray-800 overflow-y-auto">
-            <CommandPanel
-                mode={mode}
-                activeLine={activeLine}
-                totalLines={codeLines.length}
-                statusMessage={statusMessage}
-                onModeChange={handleModeChange}
-                onCommandExecute={handleCommandExecution}
-            />
-            </section>
         </main>
 
         {/* Footer with keyboard shortcuts */}
