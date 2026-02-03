@@ -4,8 +4,32 @@ import React, { useState } from 'react';
  * Terminal Component
  * Handles program execution and runtime I/O
  */
-function Terminal({ mode, terminalOutput, onClear, onRun, onTerminalInput }) {
+function Terminal({ mode }) {
   const [input, setInput] = useState('');
+  const [terminalOutput, setTerminalOutput] = useState([
+    { type: 'info', message: 'Accessible IDE Demo initialized' },
+    { type: 'info', message: 'Use Tab to navigate between sections' },
+    { type: 'success', message: 'Ready for input!' }
+  ]);
+
+  const handleClear = () => {
+    setTerminalOutput([]);
+  };
+
+  const handleRun = () => {
+    // Simple program execution - would need access to code from CodeEditor in real implementation
+    setTerminalOutput(prev => [
+      ...prev,
+      { type: 'info', message: 'Program execution not yet implemented' }
+    ]);
+  };
+
+  const handleTerminalInput = (value) => {
+    setTerminalOutput(prev => [
+      ...prev,
+      { type: 'info', message: `Input received: ${value}` }
+    ]);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -14,9 +38,9 @@ function Terminal({ mode, terminalOutput, onClear, onRun, onTerminalInput }) {
     if (!value) return;
 
     if (value === 'run') {
-      onRun();
+      handleRun();
     } else {
-      onTerminalInput?.(value);
+      handleTerminalInput(value);
     }
 
     setInput('');
@@ -28,7 +52,7 @@ function Terminal({ mode, terminalOutput, onClear, onRun, onTerminalInput }) {
         <h2 className="bg-gray-700 text-gray-300 p-2 text-base border-b border-gray-600 flex-1">Terminal</h2>
         <button
           className="bg-blue-600 text-white border-0 p-1 m-2 rounded cursor-pointer hover:bg-blue-500"
-          onClick={onClear}
+          onClick={handleClear}
           aria-label="Clear terminal output"
         >
           Clear

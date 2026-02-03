@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
+import { useCode } from '../contexts/CodeContext';
 
 /**
  * Command Panel Component
  * Navigation and inspection only
  */
-function CommandPanel({
-  mode,
-  activeLine,
-  totalLines,
-  statusMessage,
-  onModeChange,
-  onCommandExecute
-}) {
+function CommandPanel({ mode, onModeChange }) {
   const [commandInput, setCommandInput] = useState('');
+  const { activeLine, codeLines, statusMessage, executeCommand } = useCode();
 
   const handleCommandSubmit = (event) => {
     event.preventDefault();
@@ -20,7 +15,7 @@ function CommandPanel({
     const command = commandInput.trim();
     if (!command) return;
 
-    onCommandExecute(command);
+    executeCommand(command);
     setCommandInput('');
   };
 
@@ -37,7 +32,7 @@ function CommandPanel({
             {mode.charAt(0).toUpperCase() + mode.slice(1)}
           </p>
           <p className="mb-1 text-gray-400 text-xs">
-            <strong>Line:</strong> {activeLine + 1} of {totalLines}
+            <strong>Line:</strong> {activeLine + 1} of {codeLines.length}
           </p>
           <p className="mb-1 text-gray-400 text-xs text-teal-400 italic">{statusMessage}</p>
         </div>

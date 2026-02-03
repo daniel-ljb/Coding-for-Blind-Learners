@@ -1,33 +1,28 @@
 import React from 'react';
+import { useCode } from '../contexts/CodeContext';
 
 /**
  * Code Editor Component
  * Displays all code lines with the active line highlighted
  * Handles keyboard navigation within the code area
  */
-function CodeEditor({ 
-  codeLines, 
-  activeLine, 
-  mode, 
-  onLineUpdate, 
-  onActiveLineChange 
-}) {
-  
+function CodeEditor({ mode }) {
+  const { codeLines, activeLine, handleLineUpdate, handleActiveLineChange } = useCode();
+
   /**
    * Handle keyboard events for navigation and editing
-   * TODO: Implement keyboard event handling
    */
   const handleKeyDown = (event) => {
     if (mode !== 'edit' && mode !== 'command') return;
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      onActiveLineChange(activeLine - 1);
+      handleActiveLineChange(activeLine - 1);
     }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      onActiveLineChange(activeLine + 1);
+      handleActiveLineChange(activeLine + 1);
     }
   };
 
@@ -89,17 +84,17 @@ function CodeEditor({
             className="w-full p-2 bg-gray-600 text-white border border-gray-500 rounded font-mono"
             value={codeLines[activeLine] || ''}
             onChange={(e) =>
-              onLineUpdate(activeLine, e.target.value)
+              handleLineUpdate(activeLine, e.target.value)
             }
             onKeyDown={(e) => {
               if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                onActiveLineChange(activeLine - 1);
+                handleActiveLineChange(activeLine - 1);
               }
 
               if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                onActiveLineChange(activeLine + 1);
+                handleActiveLineChange(activeLine + 1);
               }
             }}
             autoFocus
