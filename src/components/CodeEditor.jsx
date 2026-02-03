@@ -43,12 +43,12 @@ function CodeEditor({
   };
 
   return (
-    <div className="code-editor">
-      <h2 className="section-title">Code Editor</h2>
+    <div className="h-full flex flex-col">
+      <h2 className="bg-gray-700 text-gray-300 p-2 text-base border-b border-gray-600">Code Editor</h2>
       
       {/* Code display area */}
       <div 
-        className="code-container"
+        className="flex-1 p-4 overflow-y-auto font-mono bg-gray-900"
         tabIndex={0}
         role="region"
         aria-label="Code editor, read-only"
@@ -58,17 +58,19 @@ function CodeEditor({
         {codeLines.map((line, index) => (
           <div 
             key={index}
-            className={`code-line ${index === activeLine ? 'active' : ''}`}
+            className={`flex items-center min-h-[1.5rem] py-0.5 relative ${
+              index === activeLine ? 'bg-blue-800 border-l-4 border-blue-600' : ''
+            }`}
             onMouseDown={(e) => e.preventDefault()}
           >
-            <span className="line-number">
+            <span className="text-gray-500 mr-4 select-none min-w-[3rem] text-right">
               {String(index + 1).padStart(3, ' ')}
             </span>
-            <span className="line-content">
+            <span className="flex-1 whitespace-pre text-gray-300">
               {line || ' '} {/* Show space for empty lines */}
             </span>
             {index === activeLine && (
-              <span className="active-indicator" aria-label="Active line">
+              <span className="text-blue-600 ml-2 font-bold" aria-label="Active line">
                 ▶
               </span>
             )}
@@ -77,13 +79,14 @@ function CodeEditor({
       </div>
 
       {mode === 'edit' && (
-        <div className="editor-input">
-          <label className="sr-only" htmlFor="line-editor">
+        <div className="bg-gray-700 border-t border-gray-600 p-2">
+          <label className="absolute w-px h-px p-0 m-[-1px] overflow-hidden clip-rect(0, 0, 0, 0) whitespace-nowrap border-0" htmlFor="line-editor">
             Edit active line {activeLine + 1}
           </label>
           <input
             id="line-editor"
             type="text"
+            className="w-full p-2 bg-gray-600 text-white border border-gray-500 rounded font-mono"
             value={codeLines[activeLine] || ''}
             onChange={(e) =>
               onLineUpdate(activeLine, e.target.value)
@@ -106,7 +109,7 @@ function CodeEditor({
       )}
 
       {/* Help text for screen readers */}
-      <div id="editor-help" className="sr-only">
+      <div id="editor-help" className="absolute w-px h-px p-0 m-[-1px] overflow-hidden clip-rect(0, 0, 0, 0) whitespace-nowrap border-0">
         Use arrow keys to navigate lines. Edit the active line using the edit input below.
         Current mode: {mode}. Active line: {activeLine + 1}.
       </div>

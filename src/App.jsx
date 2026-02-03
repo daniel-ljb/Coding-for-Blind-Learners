@@ -2,19 +2,8 @@ import React, { useState, useEffect } from 'react';
 import CodeEditor from './components/CodeEditor.jsx';
 import Terminal from './components/Terminal.jsx';
 import CommandPanel from './components/CommandPanel.jsx';
-import './App.css';
 
-/**
- * Main Application Component
- * Manages all shared state and renders the three-panel layout
- */
 function App() {
-    // ===== SHARED APPLICATION STATE =====
-    
-    /**
-     * Array of code lines - each line is a string
-     * This represents the entire program being edited
-     */
     const [codeLines, setCodeLines] = useState([
         '# Welcome to Accessible IDE Demo',
         '# Start coding below',
@@ -25,10 +14,6 @@ function App() {
         '# Add your code here'
     ]);
 
-    /**
-     * Index of the currently active line (0-based)
-     * Only one line can be active at a time
-     */
     const [activeLine, setActiveLine] = useState(2); // Start at empty line
 
     /**
@@ -156,18 +141,18 @@ function App() {
         </div>
 
         {/* Main application header */}
-        <header className="app-header">
-            <h1>Accessible Programming Environment Demo</h1>
-            <p className="mode-indicator">
+        <header className="bg-gray-800 border-b border-gray-600 p-4 text-center">
+            <h1 className="text-white text-4xl mb-2">Coding For Blind Learners</h1>
+            <p className="text-gray-400 text-sm">
             Current Mode: <strong>{mode.toUpperCase()}</strong> | 
             Active Line: <strong>{activeLine + 1}</strong> of <strong>{codeLines.length}</strong>
             </p>
         </header>
 
         {/* Three-panel layout using CSS Grid */}
-        <main className="app-main">
+        <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700">
             {/* Code Editor - Top Left (3/4 width) */}
-            <section className="editor-section">
+            <section className="col-span-1 row-span-1 bg-gray-900 overflow-hidden">
             <CodeEditor
                 codeLines={codeLines}
                 activeLine={activeLine}
@@ -178,7 +163,7 @@ function App() {
             </section>
 
             {/* Terminal - Bottom Left (3/4 width) */}
-            <section className="terminal-section">
+            <section className="col-span-1 row-span-2 bg-gray-800 overflow-hidden">
             <Terminal
                 mode={mode}
                 terminalOutput={terminalOutput}
@@ -194,7 +179,7 @@ function App() {
             </section>
 
             {/* Command Panel - Right Side (1/4 width) */}
-            <section className="command-section">
+            <section className="col-span-2 row-span-1 bg-gray-800 overflow-y-auto">
             <CommandPanel
                 mode={mode}
                 activeLine={activeLine}
@@ -207,7 +192,7 @@ function App() {
         </main>
 
         {/* Footer with keyboard shortcuts */}
-        <footer className="app-footer">
+        <footer className="bg-blue-600 text-white p-2 text-center text-xs">
             <p>Keyboard Navigation: Tab/Shift+Tab to move between sections | Arrow keys to navigate code</p>
         </footer>
         </div>
