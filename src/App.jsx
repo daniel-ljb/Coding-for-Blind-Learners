@@ -3,7 +3,6 @@ import CodeEditor from './components/CodeEditor.jsx';
 import Terminal from './components/Terminal.jsx';
 import CommandPanel from './components/CommandPanel.jsx';
 import { CodeProvider } from './contexts/CodeContext.jsx';
-import SimplePyRunner from './codeExecution/SimplePyRunner.jsx';
 
 export function App() {
   /**
@@ -33,27 +32,26 @@ export function App() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-//   return (
-//     <CodeProvider>
-//       <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700 h-screen">
-//         <section className="col-span-1 row-span-1 bg-gray-900 overflow-hidden">
-//           <CodeEditor mode={mode} />
-//         </section>
+  return (
+    <CodeProvider>
+      <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700 h-screen">
+        <section className="col-span-1 row-span-1 bg-gray-900 overflow-hidden">
+          <CodeEditor mode={mode} />
+        </section>
 
-//         <section className="col-span-1 row-span-2 bg-gray-800 overflow-y-auto">
-//           <CommandPanel
-//             mode={mode}
-//             onModeChange={handleModeChange}
-//           />
-//         </section>
+        <section className="col-span-1 row-span-2 bg-gray-800 overflow-y-auto">
+          <CommandPanel
+            mode={mode}
+            onModeChange={handleModeChange}
+          />
+        </section>
 
-//         <section className="col-span-1 row-span-1 bg-gray-800 overflow-hidden">
-//           <Terminal mode={mode} />
-//         </section>
-
-//       </main>
-//     </CodeProvider>
-//   );
+        <section className="col-span-1 row-span-1 bg-gray-800 overflow-hidden">
+          <Terminal mode={mode} />
+        </section>
+      </main>
+    </CodeProvider>
+  );
   return <SimplePyRunner></SimplePyRunner>
 }
 
