@@ -4,13 +4,12 @@ const CodeContext = createContext(null);
 
 export function CodeProvider({ children }) {
   const [codeLines, setCodeLines] = useState([
-    '# Welcome to Accessible IDE Demo',
-    '# Start coding below',
+    'def fib(n):',
+    '    if n <= 1:',
+    '        return n',
+    '    return fib(n-1) + fib(n-2)',
     '',
-    'def hello_world():',
-    '    print("Hello, World!")',
-    '',
-    '# Add your code here'
+    'print(fib(10))'
   ]);
 
   const [activeLine, setActiveLine] = useState(2); // Start at empty line
