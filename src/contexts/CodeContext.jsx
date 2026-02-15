@@ -1,42 +1,25 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { act, createContext, useContext, useState } from 'react';
 
 const CodeContext = createContext(null);
 
 export function CodeProvider({ children }) {
-  const [codeLines, setCodeLines] = useState([
+  const [code, setCode] = useState([
     'def fib(n):',
     '    if n <= 1:',
     '        return n',
     '    return fib(n-1) + fib(n-2)',
     '',
     'print(fib(10))'
-  ]);
+  ].join('\n'));
 
-  const [activeLine, setActiveLine] = useState(2); // Start at empty line
-  const [statusMessage, setStatusMessage] = useState('Ready to code! Use arrow keys to navigate.');
-
-  const normalizeLine = (line) => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('print ') && !trimmed.includes('(')) {
-      return `print("${trimmed.slice(6)}")`;
-    }
-    return line;
-  };
-
-  const handleLineUpdate = (lineIndex, newContent) => {
-    setCodeLines(prev => {
-      const updated = [...prev];
-      updated[lineIndex] = normalizeLine(newContent);
-      return updated;
-    });
-    setStatusMessage(`Updated line ${lineIndex + 1}`);
-  };
+  const [activeLine, setActiveLine] = useState(0); // Start at empty line
 
   const handleActiveLineChange = (newActiveLine) => {
     if (newActiveLine < 0) return;
-    setCodeLines(prev => {
-      if (newActiveLine >= prev.length) {
-        return [...prev, ''];
+    setCode(prev => {
+      const lines = prev.split('\n');
+      if (newActiveLine >= lines.length) {
+        return [...lines, ''].join('\n');
       }
       return prev;
     });
@@ -56,21 +39,19 @@ export function CodeProvider({ children }) {
       const n = parseInt(parts[1], 10);
       if (!isNaN(n)) handleActiveLineChange(n - 1);
     } else if (cmd === 'summary') {
-      const nonEmpty = codeLines.filter(l => l.trim() && !l.startsWith('#')).length;
-      setStatusMessage(`${codeLines.length} lines, ${nonEmpty} code lines`);
+      const lines = code.split('\n');
+      const nonEmpty = lines.filter(l => l.trim() && !l.startsWith('#')).length;
+      setStatusMessage(`${lines.length} lines, ${nonEmpty} code lines`);
     } else {
       setStatusMessage(`Unknown command: ${command}`);
     }
   };
 
   const value = {
-    codeLines,
+    code,
+    setCode,
     activeLine,
-    statusMessage,
-    handleLineUpdate,
-    handleActiveLineChange,
-    executeCommand,
-    setStatusMessage
+    setActiveLine,
   };
 
   return (

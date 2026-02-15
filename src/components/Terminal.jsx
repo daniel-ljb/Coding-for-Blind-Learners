@@ -8,7 +8,7 @@ import { useCode } from '../contexts/CodeContext';
 function Terminal({ mode }) {
   const [input, setInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([]);
-  const { activeLine, codeLines, statusMessage, executeCommand } = useCode();
+  const { code } = useCode();
 
   const workerRef = useRef(null);
   
@@ -34,7 +34,7 @@ function Terminal({ mode }) {
   const handleRun = () => {
     startWorker();
     setTerminalOutput(prev => [...prev, { type: 'info', message: 'Running code...' }]);
-    workerRef.current?.postMessage({ type: "run", data: codeLines.join('\n') });
+    workerRef.current?.postMessage({ type: "run", data: code });
   };
 
   const handleTerminalInput = (value) => {
