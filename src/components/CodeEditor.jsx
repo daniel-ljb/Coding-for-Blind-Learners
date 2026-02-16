@@ -211,7 +211,16 @@ function CodeEditor({ mode }) {
 
   useEffect(() => {
     if (mode === 'edit') {
-      // auto focus
+      const activeNode = nodes[activeLine];
+      if (activeNode) {
+        setTimeout(() => {
+          if (activeNode.type === 'keyword' && BLOCK_RULES[activeNode.keyword].hasExpression) {
+            inputRefs.current[`${activeNode.id}-exp`]?.focus();
+          } else {
+            inputRefs.current[`${activeNode.id}-txt`]?.focus();
+          }
+        }, 0);
+      }
     }
   }, [mode]);
 
