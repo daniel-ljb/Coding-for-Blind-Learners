@@ -24,6 +24,7 @@ function Terminal({ mode }) {
     readBlock,
     readFunction,
     loadFile,
+    saveFile,
     getCommandHelp,
   } = useCode();
 
@@ -137,6 +138,10 @@ function Terminal({ mode }) {
     }
     if (trimmed === 'load') {
       return { type: 'action', action: () => fileInputRef.current?.click() };
+    }
+    if (trimmed === 'save' || trimmed.startsWith('save ')) {
+      const filename = trimmed.substring(4).trim() || 'code.py';
+      return { type: 'action', action: () => saveFile(filename) };
     }
 
     return { type: 'error', text: `Unknown command: ${trimmed}` };

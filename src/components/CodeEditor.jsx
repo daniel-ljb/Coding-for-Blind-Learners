@@ -21,10 +21,8 @@ const BLOCK_RULES = {
 };
 
 function CodeEditor({ mode }) {
-  // Access global code context
   const { code, setCode, activeLine, setActiveLine, syntaxTree } = useCode();
   
-  // Local state for the node-based structure
   const [nodes, setNodes] = useState([]);
   const [error, setError] = useState(null);
   const inputRefs = useRef({});

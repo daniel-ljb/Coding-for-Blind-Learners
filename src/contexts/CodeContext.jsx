@@ -282,6 +282,23 @@ export function CodeProvider({ children }) {
     reader.readAsText(file);
   };
 
+  const saveFile = (filename = 'code.py') => {
+    try {
+      const blob = new Blob([code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setStatusMessage(`Saved file: ${filename}`);
+    } catch (error) {
+      setStatusMessage(`Error saving file: ${error.message}`);
+    }
+  };
+
   const getCommandHelp = (cmdName) => {
     const commands = {
       'next': 'next / down - Go to next line with same indentation',
@@ -295,7 +312,8 @@ export function CodeProvider({ children }) {
       'read line': 'read line / Ctrl+L - Read current line',
       'read block': 'read block / Ctrl+B - Read current block',
       'read func': 'read func / Ctrl+F - Read current function',
-      'load': 'load - Open file picker to load a Python file'
+      'load': 'load - Open file picker to load a Python file',
+      'save': 'save [filename] - Download code as a Python file (default: code.py)'
     };
     return commands[cmdName] || 'Command not found';
   };
@@ -319,6 +337,7 @@ export function CodeProvider({ children }) {
     readBlock,
     readFunction,
     loadFile,
+    saveFile,
     statusMessage,
     setStatusMessage,
     getCommandHelp,
