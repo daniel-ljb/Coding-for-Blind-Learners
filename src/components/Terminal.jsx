@@ -52,7 +52,6 @@ function Terminal({ mode }) {
     const worker = new Worker(new URL("../codeExecution/python.worker.ts", import.meta.url));
     worker.onmessage = (e) => {
       const { type, data, result, error } = e.data;
-      console.log(type)
       if (type === "output") setTerminalOutput(prev => [...prev, { type: "output", message: data }]);
       if (type === "terminated") setTerminalOutput(prev => [...prev, { type: "info", message: result }]);
       if (type === "error") setTerminalOutput(prev => [...prev, { type: "error", message: error }]);
@@ -148,6 +147,8 @@ function Terminal({ mode }) {
     const value = input.trim();
     if (!value) return;
 
+    setTerminalOutput(prev => [...prev, { type: 'input', message: value }]);
+
     const parsed = parseCommand(value);
 
     if (parsed.type === 'help') {
@@ -231,7 +232,8 @@ function Terminal({ mode }) {
                 output.type === 'info' ? 'text-teal-400' :
                 output.type === 'success' ? 'text-blue-400' :
                 output.type === 'error' ? 'text-red-600' :
-                output.type === 'output' ? 'text-green-300' : ''
+                output.type === 'output' ? 'text-green-300' :
+                output.type === 'input' ? 'text-yellow-400' : ''
               }`}>
                 {output.type.toUpperCase()}:
               </span>

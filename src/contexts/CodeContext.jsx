@@ -138,30 +138,67 @@ export function CodeProvider({ children }) {
       setStatusMessage('Already at root level');
       return;
     }
-    const targetIndent = currentIndent - 2; // Assume 2-space indents
+
+    let targetIndent = null;
     for (let i = activeLine - 1; i >= 0; i--) {
+      if (!lines[i].trim()) continue;
       const indent = getIndentLevel(lines[i]);
-      if (indent === targetIndent && lines[i].trim()) {
+      if (indent < currentIndent) {
+        targetIndent = indent;
+        break;
+      }
+    }
+
+    if (targetIndent === null) {
+      setStatusMessage('No parent level found');
+      return;
+    }
+
+    for (let i = activeLine - 1; i >= 0; i--) {
+      if (!lines[i].trim()) continue;
+      const indent = getIndentLevel(lines[i]);
+      if (indent === targetIndent) {
         handleActiveLineChange(i);
         setStatusMessage(`Moved up to line ${i + 1}`);
         return;
       }
+      if (indent < targetIndent) break;
     }
+
     setStatusMessage('No parent level found');
   };
 
   const moveInOneLevel = () => {
     const lines = code.split('\n');
     const currentIndent = getIndentLevel(lines[activeLine]);
-    const targetIndent = currentIndent + 2;
+
+    let targetIndent = null;
     for (let i = activeLine + 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
       const indent = getIndentLevel(lines[i]);
-      if (indent === targetIndent && lines[i].trim()) {
+      if (indent > currentIndent) {
+        targetIndent = indent;
+        break;
+      }
+      if (indent < currentIndent) break;
+    }
+
+    if (targetIndent === null) {
+      setStatusMessage('No child level found');
+      return;
+    }
+
+    for (let i = activeLine + 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const indent = getIndentLevel(lines[i]);
+      if (indent === targetIndent) {
         handleActiveLineChange(i);
         setStatusMessage(`Moved in to line ${i + 1}`);
         return;
       }
+      if (indent < currentIndent) break;
     }
+
     setStatusMessage('No child level found');
   };
 
