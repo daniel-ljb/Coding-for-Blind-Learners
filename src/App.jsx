@@ -60,7 +60,6 @@ export function App() {
       </main>
     </CodeProvider>
   );
-  return <SimplePyRunner></SimplePyRunner>
 }
 
 export default App;

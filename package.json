@@ -11,6 +11,8 @@
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
+    "@lezer/common": "^1.5.1",
+    "@lezer/python": "^1.1.18",
     "gh-pages": "^6.3.0",
     "prismjs": "^1.30.0",
     "pyodide": "^0.29.3",

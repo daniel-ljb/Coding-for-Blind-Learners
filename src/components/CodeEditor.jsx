@@ -22,14 +22,98 @@ const BLOCK_RULES = {
 
 function CodeEditor({ mode }) {
   // Access global code context
-  const { setCode, activeLine, setActiveLine } = useCode();
+  const { code, setCode, activeLine, setActiveLine, syntaxTree } = useCode();
   
   // Local state for the node-based structure
-  const [nodes, setNodes] = useState([
-    { id: '1', type: 'command', text: '', expression: '', indent: 0 }
-  ]);
+  const [nodes, setNodes] = useState([]);
   const [error, setError] = useState(null);
   const inputRefs = useRef({});
+  const lastSyncedCode = useRef(code);
+  const idCounter = useRef(0);
+
+  const makeId = () => `line-${idCounter.current++}`;
+
+  const getIndentLevel = (line) => {
+    const match = line.match(/^(\s*)/);
+    return match ? Math.floor(match[1].length / 4) : 0;
+  };
+
+  const getLineStarts = (text) => {
+    const starts = [0];
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '\n') starts.push(i + 1);
+    }
+    return starts;
+  };
+
+  const getLineIndexFromOffset = (lineStarts, offset) => {
+    let low = 0;
+    let high = lineStarts.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (lineStarts[mid] <= offset) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    return Math.max(0, high);
+  };
+
+  const buildNodesFromSyntaxTree = (tree, source) => {
+    const lines = source.split('\n');
+    const lineStarts = getLineStarts(source);
+    const nodeByLine = new Array(lines.length).fill(null);
+
+    const placeStatement = (stmt) => {
+      const lineIndex = getLineIndexFromOffset(lineStarts, stmt.from);
+      const lineText = lines[lineIndex] || '';
+      const indent = getIndentLevel(lineText);
+
+      if (stmt.type === 'COMPOUND') {
+        nodeByLine[lineIndex] = {
+          id: makeId(),
+          type: 'keyword',
+          keyword: stmt.keyword,
+          expression: stmt.arguments,
+          text: '',
+          indent,
+        };
+
+        if (stmt.body) {
+          stmt.body.forEach(placeStatement);
+        }
+      } else {
+        nodeByLine[lineIndex] = {
+          id: makeId(),
+          type: 'command',
+          text: stmt.raw,
+          indent,
+        };
+      }
+    };
+
+    (tree || []).forEach(placeStatement);
+
+    return lines.map((line, index) => {
+      if (nodeByLine[index]) return nodeByLine[index];
+      return {
+        id: makeId(),
+        type: 'command',
+        text: line.trim(),
+        indent: getIndentLevel(line),
+      };
+    });
+  };
+  
+  // SYNC: When code changes externally, rebuild nodes from the syntax tree
+  useEffect(() => {
+    if (code === lastSyncedCode.current) return;
+    idCounter.current = 0;
+    const nextNodes = buildNodesFromSyntaxTree(syntaxTree, code);
+    setNodes(nextNodes);
+    lastSyncedCode.current = code;
+  }, [code, syntaxTree]);
 
   // SYNC: Whenever nodes change, generate the Python string for the Context
   useEffect(() => {
@@ -41,9 +125,13 @@ function CodeEditor({ mode }) {
       }
       return node.text.trim() || node.indent > 0 ? `${spaces}${node.text}` : "";
     }).join('\n');
-    
-    setCode(pythonString);
-  }, [nodes, setCode]);
+
+    if (pythonString !== lastSyncedCode.current) {
+      lastSyncedCode.current = pythonString;
+      setCode(pythonString);
+    }
+  }, [nodes]);
+
 
   const validateIndent = (keyword, indent, index) => {
     const rule = BLOCK_RULES[keyword];
@@ -92,7 +180,7 @@ function CodeEditor({ mode }) {
     }
 
     // 2. Handle Indentation (Shift+Tab or Backspace at start)
-    if (((e.key === 'Backspace' && node.text === '') || (e.key === 'Tab' && e.shiftKey)) && node.indent > 0) {
+    if (((e.key === 'Backspace' && node.text === '' && (!node.expression || node.expression === '')) || (e.key === 'Tab' && e.shiftKey)) && node.indent > 0) {
       e.preventDefault();
       setNodes(nodes.map((n, i) => i === index ? { ...n, indent: n.indent - 1, type: 'command' } : n));
     }
@@ -120,6 +208,12 @@ function CodeEditor({ mode }) {
         inputRefs.current[`${nextId}-txt`]?.focus() || inputRefs.current[`${nextId}-exp`]?.focus();
     }
   };
+
+  useEffect(() => {
+    if (mode === 'edit') {
+      // auto focus
+    }
+  }, [mode]);
 
   return (
     <div className="code-editor-container h-full overflow-auto bg-[#0d1117] p-4 font-mono text-sm">

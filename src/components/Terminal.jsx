@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useCode } from '../contexts/CodeContext';
 
 /**
@@ -8,10 +8,40 @@ import { useCode } from '../contexts/CodeContext';
 function Terminal({ mode }) {
   const [input, setInput] = useState('');
   const [terminalOutput, setTerminalOutput] = useState([]);
-  const { code } = useCode();
+  const { 
+    code, 
+    activeLine, 
+    statusMessage,
+    createLineAfter,
+    createLineBefore,
+    moveToNextIndent,
+    moveToPrevIndent,
+    moveOutOneLevel,
+    moveInOneLevel,
+    jumpToFunction,
+    jumpToComment,
+    readLine,
+    readBlock,
+    readFunction,
+    loadFile,
+    getCommandHelp,
+  } = useCode();
 
   const workerRef = useRef(null);
+  const fileInputRef = useRef(null);
   
+  useEffect(() => {
+    if (mode === 'terminal') {
+      document.getElementById('terminal-input')?.focus();
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (statusMessage) {
+      setTerminalOutput(prev => [...prev, { type: 'info', message: statusMessage }]);
+    }
+  }, [statusMessage]);
+
   const handleClear = () => {
     setTerminalOutput([]);
   };
@@ -28,7 +58,7 @@ function Terminal({ mode }) {
       if (type === "error") setTerminalOutput(prev => [...prev, { type: "error", message: error }]);
     };
 
-    workerRef.current = worker; // <- assign the Worker to current
+    workerRef.current = worker;
   };
 
   const handleRun = () => {
@@ -37,26 +67,134 @@ function Terminal({ mode }) {
     workerRef.current?.postMessage({ type: "run", data: code });
   };
 
-  const handleTerminalInput = (value) => {
-    setTerminalOutput(prev => [
-      ...prev,
-      { type: 'info', message: `Input received: ${value}` }
-    ]);
+  const parseCommand = (cmd) => {
+    const trimmed = cmd.trim();
+    
+    // Help commands
+    if (trimmed === '?') {
+      return {
+        type: 'help',
+        text: `Available commands:\nnext/down, prev/up, leave/left, in/right\nnew line before, new line after\njump func "name", jump com "name"\nread line, read block, read func\nrun, clear, ? "command"`
+      };
+    }
+
+    if (trimmed.startsWith('? ')) {
+      const cmdName = trimmed.substring(2).trim();
+      return {
+        type: 'help',
+        text: getCommandHelp(cmdName)
+      };
+    }
+
+    // Navigation with indentation
+    if (trimmed === 'next' || trimmed === 'down') {
+      return { type: 'action', action: moveToNextIndent };
+    }
+    if (trimmed === 'prev' || trimmed === 'up') {
+      return { type: 'action', action: moveToPrevIndent };
+    }
+    if (trimmed === 'leave' || trimmed === 'left') {
+      return { type: 'action', action: moveOutOneLevel };
+    }
+    if (trimmed === 'in' || trimmed === 'right') {
+      return { type: 'action', action: moveInOneLevel };
+    }
+
+    // Line creation
+    if (trimmed === 'new line after') {
+      return { type: 'action', action: createLineAfter };
+    }
+    if (trimmed === 'new line before') {
+      return { type: 'action', action: createLineBefore };
+    }
+
+    // Jump commands
+    if (trimmed.startsWith('jump func ')) {
+      const funcName = trimmed.substring(9).replace(/"/g, '').trim();
+      return { type: 'action', action: () => jumpToFunction(funcName) };
+    }
+    if (trimmed.startsWith('jump com ')) {
+      const comName = trimmed.substring(9).replace(/"/g, '').trim();
+      return { type: 'action', action: () => jumpToComment(comName) };
+    }
+
+    // Read commands
+    if (trimmed === 'read line') {
+      return { type: 'action', action: readLine };
+    }
+    if (trimmed === 'read block') {
+      return { type: 'action', action: readBlock };
+    }
+    if (trimmed === 'read func') {
+      return { type: 'action', action: readFunction };
+    }
+
+    // Special commands
+    if (trimmed === 'run') {
+      return { type: 'action', action: handleRun };
+    }
+    if (trimmed === 'clear') {
+      return { type: 'action', action: handleClear };
+    }
+    if (trimmed === 'load') {
+      return { type: 'action', action: () => fileInputRef.current?.click() };
+    }
+
+    return { type: 'error', text: `Unknown command: ${trimmed}` };
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const value = input.trim();
     if (!value) return;
 
-    if (value === 'run') {
-      handleRun();
-    } else {
-      handleTerminalInput(value);
+    const parsed = parseCommand(value);
+
+    if (parsed.type === 'help') {
+      setTerminalOutput(prev => [...prev, { type: 'info', message: parsed.text }]);
+    } else if (parsed.type === 'error') {
+      setTerminalOutput(prev => [...prev, { type: 'error', message: parsed.text }]);
+    } else if (parsed.type === 'action') {
+      parsed.action();
     }
 
     setInput('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (mode !== 'terminal') return;
+
+    // Handle keyboard shortcuts
+    if (e.shiftKey && e.key === 'ArrowUp') {
+      e.preventDefault();
+      createLineBefore();
+      setTerminalOutput(prev => [...prev, { type: 'info', message: 'Created new line before' }]);
+    } else if (e.shiftKey && e.key === 'ArrowDown') {
+      e.preventDefault();
+      createLineAfter();
+      setTerminalOutput(prev => [...prev, { type: 'info', message: 'Created new line after' }]);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      moveToNextIndent();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      moveToPrevIndent();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      moveOutOneLevel();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      moveInOneLevel();
+    } else if (e.ctrlKey && e.key === 'l') {
+      e.preventDefault();
+      readLine();
+    } else if (e.ctrlKey && e.key === 'b') {
+      e.preventDefault();
+      readBlock();
+    } else if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault();
+      readFunction();
+    }
   };
 
   return (
@@ -81,7 +219,7 @@ function Terminal({ mode }) {
       >
         {terminalOutput.length === 0 ? (
           <div className="mb-1 flex items-start gap-2 text-gray-500 italic">
-            Terminal cleared. Ready for input.
+            Terminal cleared. Ready for input. Type '?' for available commands.
           </div>
         ) : (
           terminalOutput.map((output, index) => (
@@ -97,13 +235,27 @@ function Terminal({ mode }) {
               }`}>
                 {output.type.toUpperCase()}:
               </span>
-              <span className="flex-1 text-gray-300">
+              <span className="flex-1 text-gray-300 whitespace-pre-wrap break-words">
                 {output.message}
               </span>
             </div>
           ))
         )}
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".py"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            loadFile(e.target.files[0]);
+          }
+        }}
+        aria-label="Load Python file"
+      />
 
       {/* Input prompt */}
       <form className="p-4 border-t border-gray-600" onSubmit={handleSubmit}>
@@ -118,7 +270,8 @@ function Terminal({ mode }) {
           className="w-full p-2 bg-gray-700 text-white border border-gray-600 rounded font-mono disabled:opacity-50"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type 'run' or program input"
+          onKeyDown={handleKeyDown}
+          placeholder="Type command or '?' for help"
           aria-label="Terminal input"
         />
       </form>
