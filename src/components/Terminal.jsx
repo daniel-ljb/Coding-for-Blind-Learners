@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useCode } from '../contexts/CodeContext';
 
 /**
  * Terminal Component
@@ -6,22 +7,34 @@ import React, { useState } from 'react';
  */
 function Terminal({ mode }) {
   const [input, setInput] = useState('');
-  const [terminalOutput, setTerminalOutput] = useState([
-    { type: 'info', message: 'Accessible IDE Demo initialized' },
-    { type: 'info', message: 'Use Tab to navigate between sections' },
-    { type: 'success', message: 'Ready for input!' }
-  ]);
+  const [terminalOutput, setTerminalOutput] = useState([]);
+  const { code } = useCode();
 
+  const workerRef = useRef(null);
+  
   const handleClear = () => {
     setTerminalOutput([]);
   };
 
+  const startWorker = () => {
+    if (workerRef.current) return;
+
+    const worker = new Worker(new URL("../codeExecution/python.worker.ts", import.meta.url));
+    worker.onmessage = (e) => {
+      const { type, data, result, error } = e.data;
+      console.log(type)
+      if (type === "output") setTerminalOutput(prev => [...prev, { type: "output", message: data }]);
+      if (type === "terminated") setTerminalOutput(prev => [...prev, { type: "info", message: result }]);
+      if (type === "error") setTerminalOutput(prev => [...prev, { type: "error", message: error }]);
+    };
+
+    workerRef.current = worker; // <- assign the Worker to current
+  };
+
   const handleRun = () => {
-    // Simple program execution - would need access to code from CodeEditor in real implementation
-    setTerminalOutput(prev => [
-      ...prev,
-      { type: 'info', message: 'Program execution not yet implemented' }
-    ]);
+    startWorker();
+    setTerminalOutput(prev => [...prev, { type: 'info', message: 'Running code...' }]);
+    workerRef.current?.postMessage({ type: "run", data: code });
   };
 
   const handleTerminalInput = (value) => {
@@ -79,7 +92,8 @@ function Terminal({ mode }) {
               <span className={`font-bold min-w-[4rem] ${
                 output.type === 'info' ? 'text-teal-400' :
                 output.type === 'success' ? 'text-blue-400' :
-                output.type === 'error' ? 'text-red-600' : ''
+                output.type === 'error' ? 'text-red-600' :
+                output.type === 'output' ? 'text-green-300' : ''
               }`}>
                 {output.type.toUpperCase()}:
               </span>

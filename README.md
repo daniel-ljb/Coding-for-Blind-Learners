@@ -10,3 +10,6 @@ To get started with the project, follow these steps:
 
 # Directory Structure
 TODO
+
+# Deploy to Github Pages
+Run ```npm run deploy``` to deploy the app to Github Pages.

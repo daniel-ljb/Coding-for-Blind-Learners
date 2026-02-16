@@ -22,8 +22,7 @@ export function App() {
       if (e.ctrlKey && e.shiftKey && e.key === 'M') {
         e.preventDefault();
         setMode((prev) => {
-          if (prev === 'edit') return 'command';
-          if (prev === 'command') return 'terminal';
+          if (prev === 'edit') return 'terminal';
           return 'edit';
         });
       }
@@ -34,7 +33,7 @@ export function App() {
 
   return (
     <CodeProvider>
-      <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700 h-screen">
+      {/* <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700 h-screen">
         <section className="col-span-1 row-span-1 bg-gray-900 overflow-hidden">
           <CodeEditor mode={mode} />
         </section>
@@ -49,10 +48,19 @@ export function App() {
         <section className="col-span-1 row-span-1 bg-gray-800 overflow-hidden">
           <Terminal mode={mode} />
         </section>
+      </main> */}
+      <main className="flex flex-col h-screen bg-gray-700 gap-px">
+        <section className="flex-1 bg-gray-900 overflow-hidden">
+          <CodeEditor mode={mode} />
+        </section>
 
+        <section className="flex-1 bg-gray-800 overflow-hidden">
+          <Terminal mode={mode} />
+        </section>
       </main>
     </CodeProvider>
   );
+  return <SimplePyRunner></SimplePyRunner>
 }
 
 export default App;
