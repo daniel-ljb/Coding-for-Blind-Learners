@@ -220,7 +220,7 @@ function Terminal({ mode }) {
       <div
         className="flex-1 p-4 overflow-y-auto font-mono"
         role="log"
-        aria-live="polite"
+        aria-live="assertive"
         aria-label="Terminal output"
       >
         {terminalOutput.length === 0 ? (
