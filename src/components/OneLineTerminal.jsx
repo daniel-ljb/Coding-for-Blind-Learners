@@ -210,7 +210,7 @@ function OneLineTerminal({ mode }) {
 			<div
 				className="px-4 py-2 text-sm border-b border-gray-800 whitespace-pre-wrap break-words"
 				role="log"
-				aria-live="polite"
+				aria-live="assertive"
 				aria-label="Terminal output"
 			>
 				{lastOutput.message}
