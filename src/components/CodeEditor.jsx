@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useCode } from '../contexts/CodeContext';
-// Prism is kept for potential styling or manual highlighting if needed
 import 'prismjs/themes/prism-dark.css'; 
 import './CodeEditor.css'; 
 
@@ -22,106 +21,74 @@ const BLOCK_RULES = {
 
 function CodeEditor({ mode }) {
   const { code, setCode, activeLine, setActiveLine, syntaxTree } = useCode();
-  
   const [nodes, setNodes] = useState([]);
-  const [error, setError] = useState(null);
   const inputRefs = useRef({});
   const lastSyncedCode = useRef(code);
   const idCounter = useRef(0);
 
   const makeId = () => `line-${idCounter.current++}`;
 
+  const splitComment = (line) => {
+    let inString = false;
+    let quoteChar = null;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if ((char === '"' || char === "'") && line[i - 1] !== '\\') {
+        if (!inString) { inString = true; quoteChar = char; }
+        else if (char === quoteChar) { inString = false; }
+      }
+      if (char === '#' && !inString) return [line.slice(0, i), line.slice(i + 1)];
+    }
+    return [line, null];
+  };
+
   const getIndentLevel = (line) => {
     const match = line.match(/^(\s*)/);
     return match ? Math.floor(match[1].length / 4) : 0;
   };
 
-  const getLineStarts = (text) => {
-    const starts = [0];
-    for (let i = 0; i < text.length; i++) {
-      if (text[i] === '\n') starts.push(i + 1);
-    }
-    return starts;
-  };
-
-  const getLineIndexFromOffset = (lineStarts, offset) => {
-    let low = 0;
-    let high = lineStarts.length - 1;
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      if (lineStarts[mid] <= offset) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-    return Math.max(0, high);
-  };
-
   const buildNodesFromSyntaxTree = (tree, source) => {
     const lines = source.split('\n');
-    const lineStarts = getLineStarts(source);
-    const nodeByLine = new Array(lines.length).fill(null);
-
-    const placeStatement = (stmt) => {
-      const lineIndex = getLineIndexFromOffset(lineStarts, stmt.from);
-      const lineText = lines[lineIndex] || '';
-      const indent = getIndentLevel(lineText);
-
-      if (stmt.type === 'COMPOUND') {
-        nodeByLine[lineIndex] = {
-          id: makeId(),
-          type: 'keyword',
-          keyword: stmt.keyword,
-          expression: stmt.arguments,
-          text: '',
-          indent,
-        };
-
-        if (stmt.body) {
-          stmt.body.forEach(placeStatement);
-        }
-      } else {
-        nodeByLine[lineIndex] = {
-          id: makeId(),
-          type: 'command',
-          text: stmt.raw,
-          indent,
-        };
-      }
-    };
-
-    (tree || []).forEach(placeStatement);
-
-    return lines.map((line, index) => {
-      if (nodeByLine[index]) return nodeByLine[index];
-      return {
+    return lines.map((line) => {
+      const [codePart, commentPart] = splitComment(line);
+      const indent = getIndentLevel(line);
+      const trimmedCode = codePart.trim();
+      const firstWord = trimmedCode.split(/\s|:/)[0];
+      
+      const common = {
         id: makeId(),
-        type: 'command',
-        text: line.trim(),
-        indent: getIndentLevel(line),
+        comment: commentPart !== null ? commentPart.trim() : null,
+        indent
       };
+
+      if (BLOCK_RULES[firstWord]) {
+        const hasExpr = BLOCK_RULES[firstWord].hasExpression;
+        const expr = hasExpr ? trimmedCode.slice(firstWord.length, trimmedCode.lastIndexOf(':')).trim() : '';
+        return { ...common, type: 'keyword', keyword: firstWord, expression: expr };
+      }
+      return { ...common, type: 'command', text: trimmedCode };
     });
   };
   
-  // SYNC: When code changes externally, rebuild nodes from the syntax tree
   useEffect(() => {
     if (code === lastSyncedCode.current) return;
     idCounter.current = 0;
-    const nextNodes = buildNodesFromSyntaxTree(syntaxTree, code);
-    setNodes(nextNodes);
+    setNodes(buildNodesFromSyntaxTree(syntaxTree, code));
     lastSyncedCode.current = code;
   }, [code, syntaxTree]);
 
-  // SYNC: Whenever nodes change, generate the Python string for the Context
   useEffect(() => {
     const pythonString = nodes.map(node => {
       const spaces = "    ".repeat(node.indent);
-      if (node.type === 'keyword') {
-        const expr = node.expression ? ` ${node.expression}` : '';
-        return `${spaces}${node.keyword}${expr}:`;
+      let line = node.type === 'keyword' 
+        ? `${spaces}${node.keyword}${node.expression ? ` ${node.expression}` : ''}:`
+        : (node.text?.trim() || node.indent > 0 ? `${spaces}${node.text}` : "");
+      
+      if (node.comment !== null) {
+        const separator = line.trim() ? "    " : "";
+        line = `${line}${separator}# ${node.comment}`;
       }
-      return node.text.trim() || node.indent > 0 ? `${spaces}${node.text}` : "";
+      return line;
     }).join('\n');
 
     if (pythonString !== lastSyncedCode.current) {
@@ -130,57 +97,40 @@ function CodeEditor({ mode }) {
     }
   }, [nodes]);
 
-
-  const validateIndent = (keyword, indent, index) => {
-    const rule = BLOCK_RULES[keyword];
-    if (!rule || !rule.isContinuation) return true;
-    for (let i = index - 1; i >= 0; i--) {
-      if (nodes[i].indent > indent) continue;
-      if (nodes[i].indent === indent) {
-        return nodes[i].type === 'keyword' && rule.validParents.includes(nodes[i].keyword);
-      }
-      if (nodes[i].indent < indent) return false;
-    }
-    return false;
-  };
-
   const handleKeyDown = (e, node, index) => {
-    const trimmed = node.text.trim().toLowerCase();
+    const { selectionStart, value } = e.target;
     setActiveLine(index);
 
-    // 1. Convert command to Keyword Block on Space
-    if (e.key === ' ' && node.type === 'command' && BLOCK_RULES[trimmed]) {
+    const isInsideString = () => {
+      let quotes = 0;
+      for (let i = 0; i < selectionStart; i++) {
+        if (value[i] === '"' || value[i] === "'") quotes++;
+      }
+      return quotes % 2 !== 0;
+    };
+
+    // 1. Comment Triggers (# or Tab at end)
+    const isAtEnd = selectionStart === value.length;
+    if ((e.key === '#' && !isInsideString()) || (e.key === 'Tab' && !e.shiftKey && isAtEnd)) {
       e.preventDefault();
-      if (!validateIndent(trimmed, node.indent, index)) {
-        setError(`Syntax Error: '${trimmed}' cannot appear here.`);
-        return;
-      }
       const newNodes = [...nodes];
-      newNodes[index] = { ...node, type: 'keyword', keyword: trimmed, text: '', expression: '' };
-      
-      // Auto-indent next line
-      const nextNode = nodes[index + 1];
-      if (!nextNode || nextNode.indent <= node.indent) {
-        newNodes.splice(index + 1, 0, {
-          id: Math.random().toString(36).substr(2, 9),
-          type: 'command', text: '', indent: node.indent + 1
-        });
-      }
+      newNodes[index] = { ...node, comment: node.comment || "" };
       setNodes(newNodes);
-      setError(null);
-      setTimeout(() => {
-        if (BLOCK_RULES[trimmed].hasExpression) {
-          inputRefs.current[`${node.id}-exp`]?.focus();
-        } else {
-          inputRefs.current[`${newNodes[index+1].id}-txt`]?.focus();
-        }
-      }, 0);
+      setTimeout(() => inputRefs.current[`${node.id}-cmt`]?.focus(), 0);
+      return;
     }
 
-    // 2. Handle Indentation (Shift+Tab or Backspace at start)
-    if (((e.key === 'Backspace' && node.text === '' && (!node.expression || node.expression === '')) || (e.key === 'Tab' && e.shiftKey)) && node.indent > 0) {
+    // 2. Keyword Conversion
+    const trimmed = node.text?.trim().toLowerCase();
+    if (e.key === ' ' && node.type === 'command' && BLOCK_RULES[trimmed]) {
       e.preventDefault();
-      setNodes(nodes.map((n, i) => i === index ? { ...n, indent: n.indent - 1, type: 'command' } : n));
+      const newNodes = [...nodes];
+      newNodes[index] = { ...node, type: 'keyword', keyword: trimmed, text: '', expression: '' };
+      setNodes(newNodes);
+      setTimeout(() => {
+        const ref = BLOCK_RULES[trimmed].hasExpression ? `${node.id}-exp` : `${node.id}-txt`;
+        inputRefs.current[ref]?.focus();
+      }, 0);
     }
 
     // 3. New Line logic
@@ -190,102 +140,112 @@ function CodeEditor({ mode }) {
       const newNodes = [...nodes];
       newNodes.splice(index + 1, 0, {
         id: nextId, type: 'command', text: '', 
-        indent: node.type === 'keyword' ? node.indent + 1 : node.indent 
+        indent: node.type === 'keyword' ? node.indent + 1 : node.indent,
+        comment: null
       });
       setNodes(newNodes);
       setTimeout(() => inputRefs.current[`${nextId}-txt`]?.focus(), 0);
     }
 
-    // 4. Arrow Navigation
-    if (e.key === 'ArrowUp' && index > 0) {
-        const prevId = nodes[index-1].id;
-        inputRefs.current[`${prevId}-txt`]?.focus() || inputRefs.current[`${prevId}-exp`]?.focus();
-    }
-    if (e.key === 'ArrowDown' && index < nodes.length - 1) {
-        const nextId = nodes[index+1].id;
-        inputRefs.current[`${nextId}-txt`]?.focus() || inputRefs.current[`${nextId}-exp`]?.focus();
-    }
-  };
-
-  useEffect(() => {
-    if (mode === 'edit') {
-      const activeNode = nodes[activeLine];
-      if (activeNode) {
+    // 4. Backspace: Indent Reduction & Line Deletion
+    if (e.key === 'Backspace' && selectionStart === 0) {
+      if (node.indent > 0) {
+        e.preventDefault();
+        setNodes(nodes.map((n, i) => i === index ? { ...n, indent: n.indent - 1 } : n));
+      } else if (index > 0 && !node.text && !node.expression && node.comment === null) {
+        // Only delete if totally empty and at indent 0
+        e.preventDefault();
+        const prevIndex = index - 1;
+        const newNodes = nodes.filter((_, i) => i !== index);
+        setNodes(newNodes);
+        setActiveLine(prevIndex);
         setTimeout(() => {
-          if (activeNode.type === 'keyword' && BLOCK_RULES[activeNode.keyword].hasExpression) {
-            inputRefs.current[`${activeNode.id}-exp`]?.focus();
-          } else {
-            inputRefs.current[`${activeNode.id}-txt`]?.focus();
-          }
+          const prev = newNodes[prevIndex];
+          const target = prev.comment !== null ? `${prev.id}-cmt` : (prev.type === 'keyword' ? `${prev.id}-exp` : `${prev.id}-txt`);
+          inputRefs.current[target]?.focus();
         }, 0);
       }
     }
-  }, [mode]);
+
+    // 5. Navigation
+    if (e.key === 'ArrowUp' && index > 0) {
+      const prev = nodes[index-1];
+      const target = prev.comment !== null ? `${prev.id}-cmt` : (prev.type === 'keyword' ? `${prev.id}-exp` : `${prev.id}-txt`);
+      inputRefs.current[target]?.focus();
+    }
+    if (e.key === 'ArrowDown' && index < nodes.length - 1) {
+      const next = nodes[index+1];
+      const target = next.type === 'keyword' ? `${next.id}-exp` : `${next.id}-txt`;
+      inputRefs.current[target]?.focus();
+    }
+  };
 
   return (
     <div className="code-editor-container h-full overflow-auto bg-[#0d1117] p-4 font-mono text-sm">
-      <div className="mb-2 h-4 text-xs text-red-400">
-        {error && <span>⚠️ {error}</span>}
-      </div>
-
       <div className="space-y-1">
-        {nodes.map((node, index) => {
-          const isActive = index === activeLine;
-          
-          return (
-            <div 
-              key={node.id} 
-              className={`group relative flex items-center min-h-[24px] ${isActive ? 'bg-blue-900 bg-opacity-20' : ''}`}
-              onClick={() => setActiveLine(index)}
-            >
-              {/* Line Number */}
-              <span className="editorLineNumber mr-4 w-8 text-right opacity-30 select-none">
-                {index + 1}
-              </span>
-
-              {/* Indentation Guides */}
-              {[...Array(node.indent)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className="absolute h-full border-l border-gray-700" 
-                  style={{ left: `${(i * 32) + 48}px` }} 
-                />
-              ))}
-
-              <div className="flex items-center w-full" style={{ paddingLeft: `${node.indent * 32}px` }}>
+        {nodes.map((node, index) => (
+          <div 
+            key={node.id} 
+            className={`group flex items-center min-h-[24px] ${index === activeLine ? 'bg-blue-900/20' : ''}`}
+            onClick={() => setActiveLine(index)}
+          >
+            <span className="w-8 mr-4 text-right opacity-20 select-none text-xs">{index + 1}</span>
+            <div className="flex items-center flex-1" style={{ paddingLeft: `${node.indent * 32}px` }}>
+              <div className="flex items-center">
                 {node.type === 'keyword' ? (
-                  <div className="flex items-center gap-2">
+                  <>
                     <span className="font-bold text-[#ff7b72]">{node.keyword}</span>
-                    {BLOCK_RULES[node.keyword].hasExpression ? (
+                    {BLOCK_RULES[node.keyword].hasExpression && (
                       <input
                         ref={el => inputRefs.current[`${node.id}-exp`] = el}
-                        className="bg-[#161b22] border border-[#30363d] text-[#d29922] px-2 rounded outline-none focus:border-[#58a6ff] w-64"
+                        className="bg-[#161b22] border border-[#30363d] text-[#d29922] ml-2 px-1 rounded outline-none focus:border-[#58a6ff] min-w-[100px]"
+                        style={{ width: `${Math.max(node.expression.length + 2, 10)}ch` }}
                         value={node.expression}
-                        readOnly={mode === 'read'}
                         onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, expression: e.target.value} : n))}
                         onKeyDown={(e) => handleKeyDown(e, node, index)}
                       />
-                    ) : null}
+                    )}
                     <span className="text-gray-500">:</span>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center w-full gap-2">
-                    <span className="text-gray-600 opacity-40">❯</span>
+                  <div className="flex items-center">
+                    <span className="text-gray-600 opacity-40 mr-2">❯</span>
                     <input
                       ref={el => inputRefs.current[`${node.id}-txt`] = el}
-                      className="bg-transparent outline-none w-full text-[#7ee787]"
-                      placeholder={index === nodes.length - 1 ? "Type code or keyword..." : ""}
-                      value={node.text}
-                      readOnly={mode === 'read'}
+                      className="bg-transparent outline-none text-[#7ee787]"
+                      style={{ width: `${Math.max(node.text?.length || 0, 15)}ch` }}
+                      value={node.text || ''}
                       onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, text: e.target.value} : n))}
                       onKeyDown={(e) => handleKeyDown(e, node, index)}
                     />
                   </div>
                 )}
               </div>
+
+              {node.comment !== null && (
+                <div className="flex items-center ml-8 text-gray-500 italic">
+                  <span className="mr-2 opacity-50">#</span>
+                  <input
+                    ref={el => inputRefs.current[`${node.id}-cmt`] = el}
+                    className="bg-transparent outline-none border-b border-transparent focus:border-gray-700 text-gray-500 w-64"
+                    value={node.comment}
+                    placeholder="comment..."
+                    onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, comment: e.target.value} : n))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && node.comment === '') {
+                        e.preventDefault();
+                        setNodes(nodes.map(n => n.id === node.id ? {...n, comment: null} : n));
+                        const ref = node.type === 'keyword' ? `${node.id}-exp` : `${node.id}-txt`;
+                        setTimeout(() => inputRefs.current[ref]?.focus(), 0);
+                      }
+                      if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) handleKeyDown(e, node, index);
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
