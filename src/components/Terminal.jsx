@@ -205,7 +205,7 @@ function Terminal({ mode }) {
 
   return (
     <div className="h-full flex flex-col bg-gray-800">
-      <div className="flex justify-between items-center bg-gray-700 border-b border-gray-600">
+      <div className="flex justify-between items-center bg-gray-700 border-b border-gray-600 h-10">
         <h2 className="bg-gray-700 text-gray-300 p-2 text-base border-b border-gray-600 flex-1">Terminal</h2>
         <button
           className="bg-blue-600 text-white border-0 p-1 m-2 rounded cursor-pointer hover:bg-blue-500"

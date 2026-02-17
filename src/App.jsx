@@ -3,19 +3,12 @@ import CodeEditor from './components/CodeEditor.jsx';
 import Terminal from './components/Terminal.jsx';
 import CommandPanel from './components/CommandPanel.jsx';
 import { CodeProvider } from './contexts/CodeContext.jsx';
+import Switch from '@mui/material/Switch';
+import OneLineTerminal from './components/OneLineTerminal.jsx';
 
 export function App() {
-  /**
-   * Modes available:
-   * 'edit' - User can type/edit the active line
-   * 'command' - User can navigate and issue commands
-   * 'terminal' - User can interact with terminal
-   */
-  const [mode, setMode] = useState('edit');
-
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-  };
+  const [mode, setMode] = useState('terminal');
+  const [isBlindMode, setIsBlindMode] = useState(true);
 
   useEffect(() => {
     const handler = (e) => {
@@ -31,33 +24,33 @@ export function App() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
+  const blindModeStyles = isBlindMode ? ' opacity-0 !h-0 w-0 scale-0 flex-none' : '';
+
   return (
     <CodeProvider>
-      {/* <main className="flex-1 grid grid-cols-[3fr_1fr] grid-rows-[2fr_1fr] gap-px bg-gray-700 h-screen">
-        <section className="col-span-1 row-span-1 bg-gray-900 overflow-hidden">
-          <CodeEditor mode={mode} />
-        </section>
+      <div className="absolute top-0 right-0 flex items-center gap-2 z-50">
+        <span className="text-gray-300">Blind Mode</span>
+        <Switch
+          checked={isBlindMode}
+          onChange={(e) => setIsBlindMode(e.target.checked)}
+          color="primary"
+        />
+      </div>
+        <main className="flex flex-col h-screen bg-gray-900 gap-px justify-center">
+          <div className={"h-10 bg-gray-700 border-b border-gray-600 p-2" + blindModeStyles}>
+            <span className="text-gray-300">Code Editor</span>
+          </div>
+          <section className={"flex-1 bg-gray-900 overflow-hidden flex flex-col" + blindModeStyles}>
+            <CodeEditor mode={mode} />
+          </section>
+          <div className={"h-10 bg-gray-700 border-b border-gray-600 p-2" + blindModeStyles}>
+            <span className="text-gray-300">Terminal</span>
+          </div>
+          <section className="flex bg-gray-900 overflow-hidden flex-col">
+            <OneLineTerminal mode={mode} />
+          </section>
+        </main>
 
-        <section className="col-span-1 row-span-2 bg-gray-800 overflow-y-auto">
-          <CommandPanel
-            mode={mode}
-            onModeChange={handleModeChange}
-          />
-        </section>
-
-        <section className="col-span-1 row-span-1 bg-gray-800 overflow-hidden">
-          <Terminal mode={mode} />
-        </section>
-      </main> */}
-      <main className="flex flex-col h-screen bg-gray-700 gap-px">
-        <section className="flex-1 bg-gray-900 overflow-hidden">
-          <CodeEditor mode={mode} />
-        </section>
-
-        <section className="flex-1 bg-gray-800 overflow-hidden">
-          <Terminal mode={mode} />
-        </section>
-      </main>
     </CodeProvider>
   );
 }
