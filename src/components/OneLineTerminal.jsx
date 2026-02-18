@@ -1,26 +1,22 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useCode } from '../contexts/CodeContext';
+import {
+  getIndentLevel,
+  findNextLineWithIndent,
+  findPrevLineWithIndent,
+  getBlock,
+  findFunction,
+  findComment,
+} from '../utils/terminalCommands.js'
 
 function OneLineTerminal({ mode }) {
 	const [input, setInput] = useState('');
 	const [terminalOutput, setTerminalOutput] = useState([]);
 	const {
 		code,
-		statusMessage,
-		createLineAfter,
-		createLineBefore,
-		moveToNextIndent,
-		moveToPrevIndent,
-		moveOutOneLevel,
-		moveInOneLevel,
-		jumpToFunction,
-		jumpToComment,
-		readLine,
-		readBlock,
-		readFunction,
-		loadFile,
-		saveFile,
-		getCommandHelp,
+		setCode,
+		activeLine,
+		handleActiveLineChange,
 	} = useCode();
 
 	const workerRef = useRef(null);
@@ -32,11 +28,246 @@ function OneLineTerminal({ mode }) {
 		}
 	}, [mode]);
 
-	useEffect(() => {
+	/*useEffect(() => {
 		if (statusMessage) {
 			setTerminalOutput(prev => [...prev, { type: 'info', message: statusMessage }]);
 		}
-	}, [statusMessage]);
+	}, [statusMessage]);*/
+
+	const createLineAfter = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+		const nextIdx = findNextLineWithIndent(lines, activeLine, currentIndent);
+
+		const target = nextIdx !== -1 ? nextIdx : activeLine + 1;
+
+		const indent = getIndentLevel(lines[target] ?? '');
+		lines.splice(target, 0, ' '.repeat(indent));
+
+		setCode(lines.join('\n'));
+		handleActiveLineChange(target);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'Created new line after'}]);
+	};
+
+	const createLineBefore = () => {
+		const lines = code.split('\n');
+		const currentLine = lines[activeLine];
+		const indent = getIndentLevel(currentLine);
+		lines.splice(activeLine, 0, ' '.repeat(indent));
+		setCode(lines.join('\n'));
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'Created new line before'}]);
+	};
+
+	const moveToNextIndent = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+		const nextIdx = findNextLineWithIndent(lines, activeLine, currentIndent);
+		if (nextIdx !== -1) {
+		handleActiveLineChange(nextIdx);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Moved to line ${nextIdx + 1}`}]);
+		} else {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No next line with same indentation'}]);
+		}
+	};
+
+	const moveToPrevIndent = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+		const prevIdx = findPrevLineWithIndent(lines, activeLine, currentIndent);
+		if (prevIdx !== -1) {
+		handleActiveLineChange(prevIdx);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Moved to line ${prevIdx + 1}`}]);
+		} else {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No previous line with same indentation'}]);
+		}
+	};
+
+	const moveOutOneLevel = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+		if (currentIndent === 0) {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'Already at root level'}]);
+		return;
+		}
+
+		let targetIndent = null;
+		for (let i = activeLine - 1; i >= 0; i--) {
+		if (!lines[i].trim()) continue;
+		const indent = getIndentLevel(lines[i]);
+		if (indent < currentIndent) {
+			targetIndent = indent;
+			break;
+		}
+		}
+
+		if (targetIndent === null) {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No parent level found'}]);
+		return;
+		}
+
+		for (let i = activeLine - 1; i >= 0; i--) {
+		if (!lines[i].trim()) continue;
+		const indent = getIndentLevel(lines[i]);
+		if (indent === targetIndent) {
+			handleActiveLineChange(i);
+			setTerminalOutput(prev => [...prev, { type: 'info', message: `Moved up to line ${i + 1}`}]);
+			return;
+		}
+		if (indent < targetIndent) break;
+		}
+
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No parent level found'}]);
+	};
+
+	const moveInOneLevel = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+
+		let targetIndent = null;
+		for (let i = activeLine + 1; i < lines.length; i++) {
+		if (!lines[i].trim()) continue;
+		const indent = getIndentLevel(lines[i]);
+		if (indent > currentIndent) {
+			targetIndent = indent;
+			break;
+		}
+		if (indent < currentIndent) break;
+		}
+
+		if (targetIndent === null) {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No child level found'}]);
+		return;
+		}
+
+		for (let i = activeLine + 1; i < lines.length; i++) {
+		if (!lines[i].trim()) continue;
+		const indent = getIndentLevel(lines[i]);
+		if (indent === targetIndent) {
+			handleActiveLineChange(i);
+			setTerminalOutput(prev => [...prev, { type: 'info', message: `Moved in to line ${i + 1}`}]);
+			return;
+		}
+		if (indent < currentIndent) break;
+		}
+
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'No child level found'}]);
+	};
+
+	const jumpToFunction = (funcName) => {
+		const lines = code.split('\n');
+		const idx = findFunction(lines, funcName);
+		if (idx !== -1) {
+		handleActiveLineChange(idx);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Jumped to function '${funcName}' at line ${idx + 1}`}]);
+		} else {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Function '${funcName}' not found`}]);
+		}
+	};
+
+	const jumpToComment = (commentName) => {
+		const lines = code.split('\n');
+		const idx = findComment(lines, commentName);
+		if (idx !== -1) {
+		handleActiveLineChange(idx);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Jumped to comment '${commentName}' at line ${idx + 1}`}]);
+		} else {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Comment '${commentName}' not found`}]);
+		}
+	};
+
+	const readLine = () => {
+		const lines = code.split('\n');
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Line ${activeLine + 1}: ${lines[activeLine]}`}]);
+		// TODO: Implement actual text-to-speech or screen reader announcement
+	};
+
+	const readBlock = () => {
+		const lines = code.split('\n');
+		const { start, end } = getBlock(lines, activeLine);
+		const blockText = lines.slice(start, end + 1).join('\n');
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Reading block (lines ${start + 1}-${end + 1})`}]);
+		// TODO: Implement actual text-to-speech or screen reader announcement
+	};
+
+	const readFunction = () => {
+		const lines = code.split('\n');
+		const currentIndent = getIndentLevel(lines[activeLine]);
+		
+		// Find function definition
+		let funcStart = activeLine;
+		while (funcStart >= 0 && !lines[funcStart].includes('def ')) {
+		funcStart--;
+		}
+		
+		if (funcStart < 0 || !lines[funcStart].includes('def ')) {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: 'Not in a function'}]);
+		return;
+		}
+
+		// Find function end (next line with less or equal indentation that's not empty)
+		let funcEnd = funcStart;
+		const defIndent = getIndentLevel(lines[funcStart]);
+		for (let i = funcStart + 1; i < lines.length; i++) {
+		if (!lines[i].trim()) continue;
+		const indent = getIndentLevel(lines[i]);
+		if (indent <= defIndent) break;
+		funcEnd = i;
+		}
+
+		const funcText = lines.slice(funcStart, funcEnd + 1).join('\n');
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Reading function (lines ${funcStart + 1}-${funcEnd + 1})`}]);
+		// TODO: Implement actual text-to-speech or screen reader announcement
+	};
+
+	const loadFile = (file) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+		const content = e.target.result;
+		setCode(content);
+		handleActiveLineChange(0);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Loaded file: ${file.name}`}]);
+		};
+		reader.onerror = () => {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Error reading file: ${file.name}`}]);
+		};
+		reader.readAsText(file);
+	};
+
+	const saveFile = (filename = 'code.py') => {
+		try {
+		const blob = new Blob([code], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Saved file: ${filename}`}]);
+		} catch (error) {
+		setTerminalOutput(prev => [...prev, { type: 'info', message: `Error saving file: ${error.message}`}]);
+		}
+	};
+
+	const getCommandHelp = (cmdName) => {
+		const commands = {
+		'next': 'next / down - Go to next line with same indentation',
+		'prev': 'prev / up - Go to previous line with same indentation',
+		'leave': 'leave / left - Move up one indentation level',
+		'in': 'in / right - Move down one indentation level',
+		'new line after': 'new line after / Shift+Down - Create new line after current',
+		'new line before': 'new line before / Shift+Up - Create new line before current',
+		'jump func': 'jump func "name" - Jump to function with given name',
+		'jump com': 'jump com "name" - Jump to comment with given name',
+		'read line': 'read line / Ctrl+L - Read current line',
+		'read block': 'read block / Ctrl+B - Read current block',
+		'read func': 'read func / Ctrl+F - Read current function',
+		'load': 'load - Open file picker to load a Python file',
+		'save': 'save [filename] - Download code as a Python file (default: code.py)'
+		};
+		return commands[cmdName] || 'Command not found';
+	};
 
 	const handleClear = () => {
 		setTerminalOutput([]);
