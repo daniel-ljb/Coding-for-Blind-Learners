@@ -26,6 +26,19 @@ function CodeEditor({ mode }) {
   const lastSyncedCode = useRef(code);
   const idCounter = useRef(0);
 
+  // auto focus on mode change
+  useEffect(() => {
+    if (mode === 'edit') {
+      const activeNode = nodes[activeLine];
+      if (activeNode) {
+        const refKey = activeNode.comment !== null
+          ? `${activeNode.id}-cmt`
+          : (activeNode.type === 'keyword' ? `${activeNode.id}-exp` : `${activeNode.id}-txt`);
+        inputRefs.current[refKey]?.focus();
+      }
+    }
+  }, [mode]);
+
   const makeId = () => `line-${idCounter.current++}`;
 
   const splitComment = (line) => {
