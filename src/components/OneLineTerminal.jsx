@@ -251,9 +251,13 @@ function OneLineTerminal({ mode }) {
 	const getCommandHelp = (cmdName) => {
 		const commands = {
 		'next': 'next / down - Go to next line with same indentation',
+		'down': 'next / down - Go to next line with same indentation',
 		'prev': 'prev / up - Go to previous line with same indentation',
+		'up': 'prev / up - Go to previous line with same indentation',
 		'leave': 'leave / left - Move up one indentation level',
+		'left': 'leave / left - Move up one indentation level',
 		'in': 'in / right - Move down one indentation level',
+		'right': 'in / right - Move down one indentation level',
 		'new line after': 'new line after / Shift+Down - Create new line after current',
 		'new line before': 'new line before / Shift+Up - Create new line before current',
 		'jump func': 'jump func "name" - Jump to function with given name',
