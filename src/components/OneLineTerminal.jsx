@@ -16,6 +16,7 @@ function OneLineTerminal({ mode }) {
 		code,
 		setCode,
 		activeLine,
+		setActiveLine,
 		handleActiveLineChange,
 	} = useCode();
 
@@ -36,16 +37,13 @@ function OneLineTerminal({ mode }) {
 
 	const createLineAfter = () => {
 		const lines = code.split('\n');
-		const currentIndent = getIndentLevel(lines[activeLine]);
-		const nextIdx = findNextLineWithIndent(lines, activeLine, currentIndent);
+		const currentIndent = getIndentLevel(lines[activeLine] ?? '');
+		const insertIdx = activeLine + 1;
 
-		const target = nextIdx !== -1 ? nextIdx : activeLine + 1;
-
-		const indent = getIndentLevel(lines[target] ?? '');
-		lines.splice(target, 0, ' '.repeat(indent));
+		lines.splice(insertIdx, 0, ' '.repeat(currentIndent));
 
 		setCode(lines.join('\n'));
-		handleActiveLineChange(target);
+		setActiveLine(insertIdx);
 		setTerminalOutput(prev => [...prev, { type: 'info', message: 'Created new line after'}]);
 	};
 
