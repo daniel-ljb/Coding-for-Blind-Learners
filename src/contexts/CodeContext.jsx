@@ -320,7 +320,7 @@ export function CodeProvider({ children }) {
       'read block': 'read block / Ctrl+B - Read current block',
       'read func': 'read func / Ctrl+F - Read current function',
       'load': 'load - Open file picker to load a Python file',
-      'save': 'save [filename] - Download code as a Python file (default: code.py)'
+      'save': 'save [filename] / Ctrl+S - Download code as a Python file (default: code.py)'
     };
     return commands[cmdName] || 'Command not found';
   };
