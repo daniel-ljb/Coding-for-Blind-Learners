@@ -90,13 +90,20 @@ export function CodeProvider({ children }) {
 
   const createLineAfter = () => {
     const lines = code.split('\n');
-    const currentLine = lines[activeLine];
-    const indent = getIndentLevel(currentLine);
-    lines.splice(activeLine + 1, 0, ' '.repeat(indent));
+    const currentIndent = getIndentLevel(lines[activeLine]);
+    const nextIdx = findNextLineWithIndent(lines, activeLine, currentIndent);
+
+    const target = nextIdx !== -1 ? nextIdx : activeLine + 1;
+
+    const indent = getIndentLevel(lines[target] ?? '');
+    lines.splice(target, 0, ' '.repeat(indent));
+
     setCode(lines.join('\n'));
-    setActiveLine(activeLine + 1);
+    handleActiveLineChange(target);
+
     setStatusMessage('Created new line after');
   };
+
 
   const createLineBefore = () => {
     const lines = code.split('\n');
