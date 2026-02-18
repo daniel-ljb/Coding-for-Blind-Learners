@@ -42,10 +42,10 @@ self.onmessage = async (event: MessageEvent) => {
                 const asyncCode = data.replace(/\binput\s*\(/g, "await input(");
                 const result = await pyodideInstance.runPythonAsync(asyncCode);
 
-                self.postMessage({
-                    type: 'terminated',
-                    result: result?.toString() || 'Program completed successfully'
-                });
+                // self.postMessage({
+                //     type: 'terminated',
+                //     result: result?.toString() || 'Program completed successfully'
+                // });
 
             } catch (error: any) {
                 self.postMessage({
