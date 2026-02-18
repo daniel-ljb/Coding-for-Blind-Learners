@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCode } from '../contexts/CodeContext';
+import { useTerminalCommands } from '../hooks/useTerminalCommands.jsx';
 
 /**
  * Command Panel Component
@@ -7,7 +8,9 @@ import { useCode } from '../contexts/CodeContext';
  */
 function CommandPanel({ mode, onModeChange }) {
   const [commandInput, setCommandInput] = useState('');
-  const { activeLine, codeLines, statusMessage, executeCommand } = useCode();
+  const { code, activeLine } = useCode();
+  const { statusMessage, executeCommand } = useTerminalCommands();
+  const codeLines = code.split('\n');
 
   const handleCommandSubmit = (event) => {
     event.preventDefault();

@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import CodeEditor from './components/CodeEditor.jsx';
 import Terminal from './components/Terminal.jsx';
 import CommandPanel from './components/CommandPanel.jsx';
-import { CodeProvider, useCode } from './contexts/CodeContext.jsx';
+import { CodeProvider } from './contexts/CodeContext.jsx';
+import { useTerminalCommands } from './hooks/useTerminalCommands.jsx';
 import Switch from '@mui/material/Switch';
 import OneLineTerminal from './components/OneLineTerminal.jsx';
 
 function SaveShortcut() {
-  const { saveFile } = useCode();
+  const { saveFile } = useTerminalCommands();
   useEffect(() => {
     const handler = (e) => {
       if (e.ctrlKey && e.key === 's') {

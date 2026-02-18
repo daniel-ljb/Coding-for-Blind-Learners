@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useCode } from '../contexts/CodeContext';
+import { useTerminalCommands } from '../hooks/useTerminalCommands.jsx';
+import { parseCommand } from '../utils/terminalCommands.jsx';
 
 function OneLineTerminal({ mode }) {
 	const [input, setInput] = useState('');
 	const [terminalOutput, setTerminalOutput] = useState([]);
+	const { code } = useCode();
 	const {
-		code,
 		statusMessage,
 		createLineAfter,
 		createLineBefore,
@@ -21,7 +23,7 @@ function OneLineTerminal({ mode }) {
 		loadFile,
 		saveFile,
 		getCommandHelp,
-	} = useCode();
+	} = useTerminalCommands();
 
 	const workerRef = useRef(null);
 	const fileInputRef = useRef(null);
@@ -61,85 +63,25 @@ function OneLineTerminal({ mode }) {
 		workerRef.current?.postMessage({ type: 'run', data: code });
 	};
 
-	const parseCommand = (cmd) => {
-		const trimmed = cmd.trim();
-
-		// Help commands
-		if (trimmed === '?') {
-			return {
-				type: 'help',
-				text: `Available commands:\nnext/down, prev/up, leave/left, in/right\nnew line before, new line after\njump func "name", jump com "name"\nread line, read block, read func\nrun, clear, ? "command"`
-			};
-		}
-
-		if (trimmed.startsWith('? ')) {
-			const cmdName = trimmed.substring(2).trim();
-			return {
-				type: 'help',
-				text: getCommandHelp(cmdName)
-			};
-		}
-
-		// Navigation with indentation
-		if (trimmed === 'next' || trimmed === 'down') {
-			return { type: 'action', action: moveToNextIndent };
-		}
-		if (trimmed === 'prev' || trimmed === 'up') {
-			return { type: 'action', action: moveToPrevIndent };
-		}
-		if (trimmed === 'leave' || trimmed === 'left') {
-			return { type: 'action', action: moveOutOneLevel };
-		}
-		if (trimmed === 'in' || trimmed === 'right') {
-			return { type: 'action', action: moveInOneLevel };
-		}
-
-		// Line creation
-		if (trimmed === 'new line after') {
-			return { type: 'action', action: createLineAfter };
-		}
-		if (trimmed === 'new line before') {
-			return { type: 'action', action: createLineBefore };
-		}
-
-		// Jump commands
-		if (trimmed.startsWith('jump func ')) {
-			const funcName = trimmed.substring(9).replace(/"/g, '').trim();
-			return { type: 'action', action: () => jumpToFunction(funcName) };
-		}
-		if (trimmed.startsWith('jump com ')) {
-			const comName = trimmed.substring(9).replace(/"/g, '').trim();
-			return { type: 'action', action: () => jumpToComment(comName) };
-		}
-
-		// Read commands
-		if (trimmed === 'read line') {
-			return { type: 'action', action: readLine };
-		}
-		if (trimmed === 'read block') {
-			return { type: 'action', action: readBlock };
-		}
-		if (trimmed === 'read func') {
-			return { type: 'action', action: readFunction };
-		}
-
-		// Special commands
-		if (trimmed === 'run') {
-			return { type: 'action', action: handleRun };
-		}
-		if (trimmed === 'clear') {
-			return { type: 'action', action: handleClear };
-		}
-		if (trimmed === 'load') {
-			return { type: 'action', action: () => fileInputRef.current?.click() };
-		}
-		if (trimmed === 'save' || trimmed.startsWith('save ')) {
-			const filename = trimmed.substring(4).trim() || 'code.py';
-			return { type: 'action', action: () => saveFile(filename) };
-		}
-
-		return { type: 'error', text: `Unknown command: ${trimmed}` };
-	};
+	const parseCommandWithHandlers = (cmd) =>
+		parseCommand(cmd, {
+			moveToNextIndent,
+			moveToPrevIndent,
+			moveOutOneLevel,
+			moveInOneLevel,
+			createLineAfter,
+			createLineBefore,
+			jumpToFunction,
+			jumpToComment,
+			readLine,
+			readBlock,
+			readFunction,
+			saveFile,
+			getCommandHelp,
+			triggerLoad: () => fileInputRef.current?.click(),
+			handleRun,
+			handleClear,
+		});
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
@@ -148,7 +90,7 @@ function OneLineTerminal({ mode }) {
 
 		setTerminalOutput(prev => [...prev, { type: 'input', message: value }]);
 
-		const parsed = parseCommand(value);
+		const parsed = parseCommandWithHandlers(value);
 
 		if (parsed.type === 'help') {
 			setTerminalOutput(prev => [...prev, { type: 'info', message: parsed.text }]);
