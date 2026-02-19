@@ -28,6 +28,13 @@ function CodeEditor({ mode }) {
 
   const makeId = () => `line-${idCounter.current++}`;
 
+  useEffect(() => {
+    if (mode === 'edit') {
+      const line = inputRefs.current[`${nodes[activeLine]?.id}-txt`] || inputRefs.current[`${nodes[activeLine]?.id}-exp`] || inputRefs.current[`${nodes[activeLine]?.id}-cmt`];
+      line?.focus();
+    }
+  }, [mode, activeLine, nodes]);
+
   const splitComment = (line) => {
     let inString = false;
     let quoteChar = null;
