@@ -45,7 +45,7 @@ export function App() {
     <CodeProvider>
       <SaveShortcut />
       <div className="absolute top-0 right-0 flex items-center gap-2 z-50">
-        <span className="text-gray-300">Blind Mode</span>
+        <span className="text-gray-300">Test Mode</span>
         <Switch
           checked={isBlindMode}
           onChange={(e) => setIsBlindMode(e.target.checked)}
