@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { createTree } from '../utils/pythonParser';
+import { speak, cleanSpeech, playTone } from '../screenReader/screenReader';
 
 const CodeContext = createContext(null);
 
@@ -8,6 +9,8 @@ const getIndentLevel = (line) => {
   const match = line.match(/^(\s*)/);
   return match ? match[1].length : 0;
 };
+
+
 
 // Helper: Find next line with same indentation in same block
 const findNextLineWithIndent = (lines, startIdx, targetIndent) => {
@@ -226,16 +229,15 @@ export function CodeProvider({ children }) {
 
   const readLine = () => {
     const lines = code.split('\n');
+    speak(`Line ${activeLine + 1}: ${lines[activeLine]}`, "assertive");
     setStatusMessage(`Line ${activeLine + 1}: ${lines[activeLine]}`);
-    // TODO: Implement actual text-to-speech or screen reader announcement
   };
 
   const readBlock = () => {
     const lines = code.split('\n');
     const { start, end } = getBlock(lines, activeLine);
-    const blockText = lines.slice(start, end + 1).join('\n');
-    setStatusMessage(`Reading block (lines ${start + 1}-${end + 1})`);
-    // TODO: Implement actual text-to-speech or screen reader announcement
+    const blockText = lines.slice(start, end + 1).join('.');
+    setStatusMessage(cleanSpeech(`Reading block (lines ${start + 1}-${end + 1})`));
   };
 
   const readFunction = () => {
@@ -263,9 +265,9 @@ export function CodeProvider({ children }) {
       funcEnd = i;
     }
 
-    const funcText = lines.slice(funcStart, funcEnd + 1).join('\n');
-    setStatusMessage(`Reading function (lines ${funcStart + 1}-${funcEnd + 1})`);
-    // TODO: Implement actual text-to-speech or screen reader announcement
+    const funcText = lines.slice(funcStart, funcEnd + 1).join('.');
+    setStatusMessage(cleanSpeech(`Reading function (lines ${funcStart + 1}-${funcEnd + 1})`));
+
   };
 
   const loadFile = (file) => {
@@ -299,6 +301,20 @@ export function CodeProvider({ children }) {
     }
   };
 
+  //Plays sound to indicate indent
+  const playIndent = () => {
+    const lines = code.split('\n');
+    const currentLine = lines[activeLine] || "";
+    
+    const indent = getIndentLevel(currentLine);
+
+    const freq = 220 + (indent * 60);
+
+    setStatusMessage(`Indent Level: ${indent/4}`);
+
+    playTone(freq, 0.7);
+  }
+
   const getCommandHelp = (cmdName) => {
     const commands = {
       'next': 'next / down - Go to next line with same indentation',
@@ -317,6 +333,26 @@ export function CodeProvider({ children }) {
     };
     return commands[cmdName] || 'Command not found';
   };
+
+   /*
+  //Screen reader tied to statusmessage, not currently implemented
+  useEffect(() => {
+    const lines = code.split('\n');
+    const currentLineText = lines[activeLine];
+
+    if (currentLineText && currentLineText.trim() !== ""){
+      speak(currentLineText);
+    } else {
+      speak("Empty Line");
+    }
+  }, [activeLine])
+
+  useEffect(() => {
+    if (statusMessage) {
+        speak(statusMessage, "polite");
+    }
+}, [statusMessage]);
+*/
 
   const value = {
     code,
@@ -341,7 +377,10 @@ export function CodeProvider({ children }) {
     statusMessage,
     setStatusMessage,
     getCommandHelp,
+    playIndent,
   };
+
+ 
 
   return (
     <CodeContext.Provider value={value}>
