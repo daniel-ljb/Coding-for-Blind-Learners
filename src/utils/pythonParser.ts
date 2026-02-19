@@ -28,23 +28,6 @@ function getCode(code: string, from: number, to: number): string {
     return code.slice(from, to);
 }
 
-function getKeyword(cursor: TreeCursor, code: string): string {
-    const keywordNode = cursor.node.firstChild;
-    if (!keywordNode) return '';
-    return getCode(code, keywordNode.from, keywordNode.to);
-}
-
-function getHeaderText(
-    cursor: TreeCursor,
-    bodyNode: ReturnType<TreeCursor['node']['getChild']>,
-    keyword: string,
-    code: string
-): string {
-    const endOfHeader = bodyNode ? bodyNode.from : cursor.node.to;
-    const headerText = getCode(code, cursor.node.from + keyword.length, endOfHeader).trim();
-    return headerText.replace(/:$/, '').trim();
-}
-
 function mapNodes(cursor: TreeCursor, code: string): Statement[] {
     const statements: Statement[] = [];
 
@@ -73,11 +56,12 @@ function mapNodes(cursor: TreeCursor, code: string): Statement[] {
                     currentConstruction.from = p.from
                 }   
                 else if(p.name !== "Body")
-                    currentConstruction.arguments += getCode(code, p.from, p.to)
+                    currentConstruction.arguments += getCode(code, p.from, p.to) + " "
                 else if(p.name === "Body") {
                     currentConstruction.body = mapNodes(p.cursor(), code)
                     currentConstruction.to = p.to
 
+                    currentConstruction.arguments = currentConstruction.arguments.slice(0, -1) //Remove the final space
                     statements.push(currentConstruction)
                     currentConstruction = {
                         type: 'COMPOUND',
