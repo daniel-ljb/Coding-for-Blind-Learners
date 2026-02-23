@@ -5,7 +5,7 @@ import { useCodeActions } from '../hooks/useCodeActions';
 function OneLineTerminal() {
 	const [input, setInput] = useState('');
 	const {
-		code,
+		activeLine,
 		terminalOutput,
 		setTerminalOutput,
 		mode,
@@ -20,9 +20,9 @@ function OneLineTerminal() {
 		moveInOneLevel,
 		jumpToFunction,
 		jumpToComment,
-		readLine,
-		readBlock,
-		readFunction,
+		readActiveLine,
+		readActiveBlock,
+		readActiveFunction,
 		loadFile,
 		saveFile,
 		initCodeRunner,
@@ -34,6 +34,10 @@ function OneLineTerminal() {
 			document.getElementById('one-line-terminal-input')?.focus();
 		}
 	}, [mode]);
+
+  useEffect(() => {
+    initCodeRunner();
+  });
 
 	const getCommandHelp = (cmdName) => {
 		const commands = {
@@ -115,13 +119,13 @@ function OneLineTerminal() {
 
 		// Read commands
 		if (trimmed === 'read line') {
-			return { type: 'action', action: readLine };
+			return { type: 'action', action: readActiveLine };
 		}
 		if (trimmed === 'read block') {
-			return { type: 'action', action: readBlock };
+			return { type: 'action', action: readActiveBlock };
 		}
 		if (trimmed === 'read func') {
-			return { type: 'action', action: readFunction };
+			return { type: 'action', action: readActiveFunction };
 		}
 
 		// Special commands

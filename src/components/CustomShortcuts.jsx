@@ -11,9 +11,9 @@ function CustomShortcuts() {
     moveToPrevIndent,
     moveOutOneLevel,
     moveInOneLevel,
-    readLine,
-    readBlock,
-    readFunction,
+    readActiveLine,
+    readActiveBlock,
+    readActiveFunction,
     saveFile,
   } = useCodeActions();
 
@@ -40,17 +40,17 @@ function CustomShortcuts() {
       // Ctrl+L: Read line
       else if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
-        readLine();
+        readActiveLine();
       }
       // Ctrl+B: Read block
       else if (e.ctrlKey && e.key === 'b') {
         e.preventDefault();
-        readBlock();
+        readActiveBlock();
       }
       // Ctrl+F: Read function
       else if (e.ctrlKey && e.key === 'f') {
         e.preventDefault();
-        readFunction();
+        readActiveFunction();
       }
       // Ctrl+S: Save file
       else if (e.ctrlKey && e.key === 's') {
@@ -61,7 +61,7 @@ function CustomShortcuts() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [code, activeLine, mode, setMode, createLineAfter, createLineBefore, moveToNextIndent, moveToPrevIndent, moveOutOneLevel, moveInOneLevel, readLine, readBlock, readFunction, saveFile]);
+  }, [code, activeLine, mode, setMode, createLineAfter, createLineBefore, moveToNextIndent, moveToPrevIndent, moveOutOneLevel, moveInOneLevel, readActiveLine, readActiveBlock, readActiveFunction, saveFile]);
 
   return null;
 }

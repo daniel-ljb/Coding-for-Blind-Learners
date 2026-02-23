@@ -65,6 +65,19 @@ const findComment = (lines, commentName) => {
 export function useCodeActions() {
   const { code, setCode, activeLine, handleActiveLineChange, setTerminalOutput } = useApp();
   const codeRunnerRef = useRef(null);
+  
+  const readLine = useCallback((line) => {
+    const lines = code.split('\n');
+    if (line < 0 || line >= lines.length) {
+      setTerminalOutput(`Line ${line + 1} does not exist`);
+      return;
+    }
+    setTerminalOutput(`Line ${line + 1}: ${lines[line]}`);
+  }, [code, setTerminalOutput]);
+
+  const readActiveLine = useCallback(() => {
+    readLine(activeLine);
+  }, [activeLine, readLine]);
 
   const createLineAfter = useCallback(() => {
     const lines = code.split('\n');
@@ -91,11 +104,11 @@ export function useCodeActions() {
     const nextIdx = findNextLineWithIndent(lines, activeLine, currentIndent);
     if (nextIdx !== -1) {
       handleActiveLineChange(nextIdx);
-      setTerminalOutput(`Moved to line ${nextIdx + 1}`);
+      readLine(nextIdx);
     } else {
       setTerminalOutput('No next line with same indentation');
     }
-  }, [code, activeLine, handleActiveLineChange, setTerminalOutput]);
+  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveToPrevIndent = useCallback(() => {
     const lines = code.split('\n');
@@ -103,11 +116,11 @@ export function useCodeActions() {
     const prevIdx = findPrevLineWithIndent(lines, activeLine, currentIndent);
     if (prevIdx !== -1) {
       handleActiveLineChange(prevIdx);
-      setTerminalOutput(`Moved to line ${prevIdx + 1}`);
+      readLine(prevIdx);
     } else {
       setTerminalOutput('No previous line with same indentation');
     }
-  }, [code, activeLine, handleActiveLineChange, setTerminalOutput]);
+  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveOutOneLevel = useCallback(() => {
     const lines = code.split('\n');
@@ -137,14 +150,14 @@ export function useCodeActions() {
       const indent = getIndentLevel(lines[i]);
       if (indent === targetIndent) {
         handleActiveLineChange(i);
-        setTerminalOutput(`Moved up to line ${i + 1}`);
+        readLine(i);
         return;
       }
       if (indent < targetIndent) break;
     }
 
     setTerminalOutput('No parent level found');
-  }, [code, activeLine, handleActiveLineChange, setTerminalOutput]);
+  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveInOneLevel = useCallback(() => {
     const lines = code.split('\n');
@@ -171,49 +184,44 @@ export function useCodeActions() {
       const indent = getIndentLevel(lines[i]);
       if (indent === targetIndent) {
         handleActiveLineChange(i);
-        setTerminalOutput(`Moved in to line ${i + 1}`);
+        readLine(i);
         return;
       }
       if (indent < currentIndent) break;
     }
 
     setTerminalOutput('No child level found');
-  }, [code, activeLine, handleActiveLineChange, setTerminalOutput]);
+  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const jumpToFunction = useCallback((funcName) => {
     const lines = code.split('\n');
     const idx = findFunction(lines, funcName);
     if (idx !== -1) {
       handleActiveLineChange(idx);
-      setTerminalOutput(`Jumped to function '${funcName}' at line ${idx + 1}`);
+      readLine(idx);
     } else {
       setTerminalOutput(`Function '${funcName}' not found`);
     }
-  }, [code, handleActiveLineChange, setTerminalOutput]);
+  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const jumpToComment = useCallback((commentName) => {
     const lines = code.split('\n');
     const idx = findComment(lines, commentName);
     if (idx !== -1) {
       handleActiveLineChange(idx);
-      setTerminalOutput(`Jumped to comment '${commentName}' at line ${idx + 1}`);
+      readLine(idx);
     } else {
       setTerminalOutput(`Comment '${commentName}' not found`);
     }
-  }, [code, handleActiveLineChange, setTerminalOutput]);
+  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
 
-  const readLine = useCallback(() => {
-    const lines = code.split('\n');
-    setTerminalOutput(`Line ${activeLine + 1}: ${lines[activeLine]}`);
-  }, [code, activeLine, setTerminalOutput]);
-
-  const readBlock = useCallback(() => {
+  const readActiveBlock = useCallback(() => {
     const lines = code.split('\n');
     const { start, end } = getBlock(lines, activeLine);
     setTerminalOutput(`Reading block (lines ${start + 1}-${end + 1})`);
   }, [code, activeLine, setTerminalOutput]);
 
-  const readFunction = useCallback(() => {
+  const readActiveFunction = useCallback(() => {
     const lines = code.split('\n');
     let funcStart = activeLine;
     while (funcStart >= 0 && !lines[funcStart].includes('def ')) {
@@ -300,8 +308,9 @@ export function useCodeActions() {
     jumpToFunction,
     jumpToComment,
     readLine,
-    readBlock,
-    readFunction,
+    readActiveLine,
+    readActiveBlock,
+    readActiveFunction,
     loadFile,
     saveFile,
     initCodeRunner,
