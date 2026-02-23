@@ -19,10 +19,11 @@ async function initializePyodide(): Promise<any> {
     })
 
     function pyOutput(...args:any[]) {
+        console.log(args.join(" "))
         self.postMessage({type: 'output', data: args.join(" ")})
     }
     function pyInput(promptText="") {
-        pyOutput(promptText)
+        self.postMessage({type: 'inputRequest', data: promptText})
         return new Promise(resolve => {inputResolution = resolve})
     }
 
@@ -39,20 +40,54 @@ self.onmessage = async (event: MessageEvent) => {
         case 'run':
             try {
                 const pyodideInstance = await initializePyodide();
-                const asyncCode = data.replace(/\binput\s*\(/g, "await input(");
+
+                const userCode = data.replace(/\binput\s*\(/g, "await input(");
+                const wrappedCode = `async def __user_main__():\n${userCode.split("\n").map(l => "    " + l).join("\n")}`;
+
+                const asyncCode = `
+import traceback
+
+source = """${wrappedCode}
+"""
+
+def format_error_for_screen_reader(exc: BaseException) -> str:
+    if isinstance(exc, SyntaxError):
+        msg = exc.msg or exc.args[0]
+        text = (exc.text or "").strip()
+        return f"SyntaxError: {msg}\\n{exc.lineno} {text}"
+
+
+    tb = traceback.TracebackException.from_exception(exc)
+    lines = [f"{type(exc).__name__}: {exc}"]
+    code_lines = source.split("\\n")
+    for frame in reversed(tb.stack):
+        if frame.lineno > len(code_lines):
+            continue
+
+        code = (frame.line or source.split("\\n")[frame.lineno-1] or "").strip()
+        lines.append(
+            f"{frame.lineno} {code}"
+        )
+
+    return "\\n".join(lines)
+
+async def __run_user_code__():
+    try:
+        exec(source, globals())
+        await globals()["__user_main__"]()
+    except Exception as e:
+        print(format_error_for_screen_reader(e))
+
+await __run_user_code__()
+`;
+                console.log(asyncCode)
                 const result = await pyodideInstance.runPythonAsync(asyncCode);
-
-                // self.postMessage({
-                //     type: 'terminated',
-                //     result: result?.toString() || 'Program completed successfully'
-                // });
-
-            } catch (error: any) {
                 self.postMessage({
-                    type: 'error',
-                    error: error.toString(),
-                    traceback: error.message
+                    type: 'terminated',
+                    result: result?.toString() || 'Program completed successfully'
                 });
+            } catch (error: any) {
+                self.postMessage({ type: 'error', error: error.toString() });
             }
             break;
 

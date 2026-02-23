@@ -50,7 +50,7 @@ function mapNodes(cursor: TreeCursor, code: string): Statement[] {
                 to: -1
             }
 
-            while(true) {
+            while(p != null) {
                 if(currentConstruction.keyword === '') {
                     currentConstruction.keyword = p.name
                     currentConstruction.from = p.from
@@ -73,7 +73,6 @@ function mapNodes(cursor: TreeCursor, code: string): Statement[] {
                     } //Start on a new one
                 }
 
-                if(p.nextSibling == null) break
                 p = p.nextSibling
             }
         } else {

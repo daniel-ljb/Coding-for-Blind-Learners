@@ -286,6 +286,7 @@ export function useCodeActions() {
     codeRunner.onmessage = (e) => {
       const { type, data, result, error } = e.data;
       if (type === 'output') setTerminalOutput(data);
+      if (type === 'inputRequest') setTerminalOutput(data);
       if (type === 'terminated') setTerminalOutput(result);
       if (type === 'error') setTerminalOutput(error);
     };
@@ -297,6 +298,11 @@ export function useCodeActions() {
     initCodeRunner();
     codeRunnerRef.current?.postMessage({ type: 'run', data: code });
   }, [initCodeRunner, code]);
+
+//   const sendPythonInput = useCallback((input) => {
+//     initCodeRunner();
+//     codeRunnerRef.current?.postMessage({ type: 'input', data: input });
+//   }, [initCodeRunner, code]);
 
   return {
     createLineAfter,
