@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
+import { announce } from '@react-aria/live-announcer';
 import { createTree } from '../utils/pythonParser';
 
-const CodeContext = createContext(null);
+const AppContext = createContext(null);
 
-export function CodeProvider({ children }) {
+export function AppProvider({ children }) {
   const [code, setCode] = useState([
     'def fib(n):',
     '    if n <= 1:',
@@ -15,6 +16,14 @@ export function CodeProvider({ children }) {
 
   const [activeLine, setActiveLine] = useState(0);
   const syntaxTree = useMemo(() => createTree(code), [code]);
+
+  const [terminalOutput, setTerminalOutput_] = useState('Press ? for available commands.');
+  const setTerminalOutput = (msg) => {
+    announce(msg);
+    setTerminalOutput_(msg);
+  };
+
+  const [mode, setMode] = useState('terminal');
 
   const handleActiveLineChange = (newActiveLine) => {
     const lines = code.split('\n');
@@ -33,19 +42,23 @@ export function CodeProvider({ children }) {
     activeLine,
     setActiveLine,
     handleActiveLineChange,
+    terminalOutput,
+    setTerminalOutput,
+    mode,
+    setMode,
   };
 
   return (
-    <CodeContext.Provider value={value}>
+    <AppContext.Provider value={value}>
       {children}
-    </CodeContext.Provider>
+    </AppContext.Provider>
   );
 }
 
-export function useCode() {
-  const context = useContext(CodeContext);
+export function useApp() {
+  const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useCode must be used within a CodeProvider');
+    throw new Error('useApp must be used within an AppProvider');
   }
   return context;
 }

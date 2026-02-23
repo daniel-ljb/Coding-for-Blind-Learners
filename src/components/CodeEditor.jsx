@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useCode } from '../contexts/CodeContext';
+import { useApp } from '../contexts/AppContext';
 import 'prismjs/themes/prism-dark.css'; 
 import './CodeEditor.css'; 
+import { useCodeActions } from '../hooks/useCodeActions';
 
 const BLOCK_RULES = {
   "if": { "hasExpression": true, "isContinuation": false},
@@ -19,12 +20,18 @@ const BLOCK_RULES = {
   "case": { "hasExpression": true, "isContinuation": true, "validParents": ["match", "case"] }
 };
 
-function CodeEditor({ mode }) {
-  const { code, setCode, activeLine, setActiveLine, syntaxTree } = useCode();
+function CodeEditor() {
+  const { code, setCode, activeLine, setActiveLine, syntaxTree, mode } = useApp();
   const [nodes, setNodes] = useState([]);
   const inputRefs = useRef({});
   const lastSyncedCode = useRef(code);
   const idCounter = useRef(0);
+
+  const {
+    createLineAfter,
+    moveToPrevIndent,
+    moveToNextIndent,
+  } = useCodeActions();
 
   // auto focus on mode change
   useEffect(() => {
@@ -37,7 +44,7 @@ function CodeEditor({ mode }) {
         inputRefs.current[refKey]?.focus();
       }
     }
-  }, [mode]);
+  }, [mode, activeLine, nodes]);
 
   const makeId = () => `line-${idCounter.current++}`;
 
@@ -180,16 +187,17 @@ function CodeEditor({ mode }) {
       }
     }
 
-    // 5. Navigation
-    if (e.key === 'ArrowUp' && index > 0) {
-      const prev = nodes[index-1];
-      const target = prev.comment !== null ? `${prev.id}-cmt` : (prev.type === 'keyword' ? `${prev.id}-exp` : `${prev.id}-txt`);
-      inputRefs.current[target]?.focus();
+    // 5. Navigation 
+    if (e.key === 'ArrowUp' && !e.shiftKey && !e.ctrlKey && !e.altKey && index > 0) {
+      e.preventDefault();
+      moveToPrevIndent();
     }
-    if (e.key === 'ArrowDown' && index < nodes.length - 1) {
-      const next = nodes[index+1];
-      const target = next.type === 'keyword' ? `${next.id}-exp` : `${next.id}-txt`;
-      inputRefs.current[target]?.focus();
+    if (e.key === 'ArrowDown' && !e.shiftKey && !e.ctrlKey && !e.altKey && index < nodes.length - 1) {
+      // const next = nodes[index+1];
+      // const target = next.type === 'keyword' ? `${next.id}-exp` : `${next.id}-txt`;
+      // inputRefs.current[target]?.focus();
+      e.preventDefault();
+      moveToNextIndent();
     }
   };
 
