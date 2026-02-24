@@ -17,10 +17,13 @@ export function AppProvider({ children }) {
   const [activeLine, setActiveLine] = useState(0);
   const syntaxTree = useMemo(() => createTree(code), [code]);
 
+  const announcerClarify = (msg) => msg
+    .replace(/\bdef\b/g, 'deaf') // replace def to deaf (since screen readers say "definite" for some reason)
+
   const [terminalOutput, setTerminalOutput_] = useState('Press ? for available commands.');
   const setTerminalOutput = (msg) => {
     clearAnnouncer()
-    announce(msg);
+    announce(announcerClarify(msg));
     setTerminalOutput_(msg);
   };
 

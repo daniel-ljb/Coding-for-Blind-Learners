@@ -20,6 +20,19 @@ const BLOCK_RULES = {
   "case": { "hasExpression": true, "isContinuation": true, "validParents": ["match", "case"] }
 };
 
+const BLOCK_HINT = {
+  "if": "Enter if condition",
+  "elif": "Enter elif condition",
+  "def": "Enter function signature",
+  "class": "Enter class",
+  "for": "Enter for loop expression",
+  "while": "Enter while loop condition",
+  "with": "Enter with statement expression",
+  "except": "Enter exception type",
+  "match": "Enter match expression",
+  "case": "Enter case pattern"
+}
+
 function CodeEditor() {
   const { code, setCode, activeLine, setActiveLine, syntaxTree, mode } = useApp();
   const [nodes, setNodes] = useState([]);
@@ -33,16 +46,21 @@ function CodeEditor() {
     moveToNextIndent,
   } = useCodeActions();
 
+  const { setTerminalOutput } = useApp();
+
   // auto focus on mode change
   useEffect(() => {
     if (mode === 'edit') {
       const activeNode = nodes[activeLine];
+      console.log('Active Node on Mode Change:', activeNode);
       if (activeNode) {
-        const refKey = activeNode.type === 'keyword' ? `${activeNode.id}-exp` : `${activeNode.id}-txt`;
-        inputRefs.current[refKey]?.focus();
+        inputRefs.current[activeNode.id]?.focus();
+        if (BLOCK_HINT[activeNode.keyword] && activeNode.content === '') {
+          setTerminalOutput(BLOCK_HINT[activeNode.keyword]);
+        }
       }
     }
-  }, [mode, activeLine, nodes]);
+  }, [mode]);
 
   const makeId = () => `line-${idCounter.current++}`;
 
@@ -81,13 +99,14 @@ function CodeEditor() {
 
       if (BLOCK_RULES[firstWord]) {
         const hasExpr = BLOCK_RULES[firstWord].hasExpression;
-        const expr = hasExpr ? trimmedCode.slice(firstWord.length, trimmedCode.lastIndexOf(':')).trim() : '';
-        return { ...common, type: 'keyword', keyword: firstWord, expression: expr };
+        const content = hasExpr ? trimmedCode.slice(firstWord.length, trimmedCode.lastIndexOf(':')).trim() : '';
+        return { ...common, type: 'keyword', keyword: firstWord, content };
       }
-      return { ...common, type: 'command', text: trimmedCode };
+      return { ...common, type: 'command', content: trimmedCode };
     });
   };
   
+  // When code changes by external means (like terminal commands), update nodes
   useEffect(() => {
     if (code === lastSyncedCode.current) return;
     idCounter.current = 0;
@@ -95,12 +114,13 @@ function CodeEditor() {
     lastSyncedCode.current = code;
   }, [code, syntaxTree]);
 
+  // When nodes change (like user edits), update code
   useEffect(() => {
     const pythonString = nodes.map(node => {
       const spaces = "    ".repeat(node.indent);
       let line = node.type === 'keyword' 
-        ? `${spaces}${node.keyword}${node.expression ? ` ${node.expression}` : ''}:`
-        : (node.text?.trim() || node.indent > 0 ? `${spaces}${node.text}` : "");
+        ? `${spaces}${node.keyword}${node.content ? ` ${node.content}` : ''}:`
+        : (node.content?.trim() || node.indent > 0 ? `${spaces}${node.content}` : "");
       
       if (node.comment !== null) {
         const separator = line.trim() ? "    " : "";
@@ -139,16 +159,15 @@ function CodeEditor() {
     }
 
     // 2. Keyword Conversion
-    const trimmed = node.text?.trim().toLowerCase();
+    const trimmed = node.content?.trim().toLowerCase();
     if (e.key === ' ' && node.type === 'command' && BLOCK_RULES[trimmed]) {
       e.preventDefault();
       const newNodes = [...nodes];
-      newNodes[index] = { ...node, type: 'keyword', keyword: trimmed, text: '', expression: '' };
+      newNodes[index] = { ...node, type: 'keyword', keyword: trimmed, content: '' };
       setNodes(newNodes);
-      setTimeout(() => {
-        const ref = BLOCK_RULES[trimmed].hasExpression ? `${node.id}-exp` : `${node.id}-txt`;
-        inputRefs.current[ref]?.focus();
-      }, 0);
+      if (BLOCK_HINT[trimmed])
+        setTerminalOutput(BLOCK_HINT[trimmed]);
+      setTimeout(() => inputRefs.current[node.id]?.focus(), 0);
     }
 
     // 3. New Line logic
@@ -157,12 +176,12 @@ function CodeEditor() {
       const nextId = Math.random().toString(36).substr(2, 9);
       const newNodes = [...nodes];
       newNodes.splice(index + 1, 0, {
-        id: nextId, type: 'command', text: '', 
+        id: nextId, type: 'command', content: '', 
         indent: node.type === 'keyword' ? node.indent + 1 : node.indent,
         comment: null
       });
       setNodes(newNodes);
-      setTimeout(() => inputRefs.current[`${nextId}-txt`]?.focus(), 0);
+      setTimeout(() => inputRefs.current[nextId]?.focus(), 0);
     }
 
     // 4. Backspace: Indent Reduction & Line Deletion
@@ -170,7 +189,7 @@ function CodeEditor() {
       if (node.indent > 0) {
         e.preventDefault();
         setNodes(nodes.map((n, i) => i === index ? { ...n, indent: n.indent - 1 } : n));
-      } else if (index > 0 && !node.text && !node.expression && node.comment === null) {
+      } else if (index > 0 && !node.content && node.comment === null) {
         // Only delete if totally empty and at indent 0
         e.preventDefault();
         const prevIndex = index - 1;
@@ -179,7 +198,7 @@ function CodeEditor() {
         setActiveLine(prevIndex);
         setTimeout(() => {
           const prev = newNodes[prevIndex];
-          const target = prev.comment !== null ? `${prev.id}-cmt` : (prev.type === 'keyword' ? `${prev.id}-exp` : `${prev.id}-txt`);
+          const target = prev.comment !== null ? `${prev.id}-cmt` : prev.id;
           inputRefs.current[target]?.focus();
         }, 0);
       }
@@ -191,9 +210,6 @@ function CodeEditor() {
       moveToPrevIndent();
     }
     if (e.key === 'ArrowDown' && !e.shiftKey && !e.ctrlKey && !e.altKey && index < nodes.length - 1) {
-      // const next = nodes[index+1];
-      // const target = next.type === 'keyword' ? `${next.id}-exp` : `${next.id}-txt`;
-      // inputRefs.current[target]?.focus();
       e.preventDefault();
       moveToNextIndent();
     }
@@ -216,11 +232,11 @@ function CodeEditor() {
                     <span className="font-bold text-[#ff7b72]">{node.keyword}</span>
                     {BLOCK_RULES[node.keyword].hasExpression && (
                       <input
-                        ref={el => inputRefs.current[`${node.id}-exp`] = el}
+                        ref={el => inputRefs.current[node.id] = el}
                         className="bg-[#161b22] border border-[#30363d] text-[#d29922] ml-2 px-1 rounded outline-none focus:border-[#58a6ff] min-w-[100px]"
-                        style={{ width: `${Math.max(node.expression.length + 2, 10)}ch` }}
-                        value={node.expression}
-                        onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, expression: e.target.value} : n))}
+                        style={{ width: `${Math.max(node.content.length + 2, 10)}ch` }}
+                        value={node.content}
+                        onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, content: e.target.value} : n))}
                         onKeyDown={(e) => handleKeyDown(e, node, index)}
                       />
                     )}
@@ -230,11 +246,11 @@ function CodeEditor() {
                   <div className="flex items-center">
                     <span className="text-gray-600 opacity-40 mr-2">❯</span>
                     <input
-                      ref={el => inputRefs.current[`${node.id}-txt`] = el}
+                      ref={el => inputRefs.current[node.id] = el}
                       className="bg-transparent outline-none text-[#7ee787]"
-                      style={{ width: `${Math.max(node.text?.length || 0, 15)}ch` }}
-                      value={node.text || ''}
-                      onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, text: e.target.value} : n))}
+                      style={{ width: `${Math.max(node.content?.length || 0, 15)}ch` }}
+                      value={node.content || ''}
+                      onChange={(e) => setNodes(nodes.map(n => n.id === node.id ? {...n, content: e.target.value} : n))}
                       onKeyDown={(e) => handleKeyDown(e, node, index)}
                     />
                   </div>
@@ -254,8 +270,7 @@ function CodeEditor() {
                       if (e.key === 'Backspace' && node.comment === '') {
                         e.preventDefault();
                         setNodes(nodes.map(n => n.id === node.id ? {...n, comment: null} : n));
-                        const ref = node.type === 'keyword' ? `${node.id}-exp` : `${node.id}-txt`;
-                        setTimeout(() => inputRefs.current[ref]?.focus(), 0);
+                        setTimeout(() => inputRefs.current[node.id]?.focus(), 0);
                       }
                       if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) handleKeyDown(e, node, index);
                     }}
