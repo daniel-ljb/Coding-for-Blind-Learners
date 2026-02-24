@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
+import { demoLibrary } from '../utils/demoLibrary';
 
 // Helper: Get indentation level of a line
 const getIndentLevel = (line) => {
@@ -318,6 +319,17 @@ export function useCodeActions() {
     codeRunnerRef.current?.postMessage({ type: 'run', data: code });
   }, [initCodeRunner, code]);
 
+  const loadDemo = useCallback((id) => {
+    const content = demoLibrary[id];
+    if (content) {
+      setCode(content);
+      handleActiveLineChange(0);
+      setTerminalOutput(`Loaded Demo ${id}`);
+    } else {
+      setTerminalOutput(`Demo ${id} not found`);
+    }
+}, [setCode, handleActiveLineChange, setTerminalOutput]);
+
 //   const sendPythonInput = useCallback((input) => {
 //     initCodeRunner();
 //     codeRunnerRef.current?.postMessage({ type: 'input', data: input });
@@ -341,5 +353,6 @@ export function useCodeActions() {
     saveFile,
     initCodeRunner,
     runCode,
+    loadDemo,
   };
 }

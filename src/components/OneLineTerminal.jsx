@@ -27,6 +27,7 @@ function OneLineTerminal() {
 		saveFile,
 		initCodeRunner,
 		runCode,
+		loadDemo,
 	} = useCodeActions();
 
 	useEffect(() => {
@@ -73,7 +74,9 @@ function OneLineTerminal() {
 		'load': 'load / l - Open file picker to load a Python file',
 		'l': 'l / load - Open file picker to load a Python file',
 		'save': 'save / s [filename] - Download code as a Python file (default: code.py)',
-		's': 's / save [filename] - Download code as a Python file (default: code.py)'
+		's': 's / save [filename] - Download code as a Python file (default: code.py)',
+		'ld': 'ld / loaddemo [1-10] - Load a demo file',
+		'loaddemo': 'ld / loaddemo [1-10] - Load a demo file'
 		};
 		return commands[cmdName] || 'Command not found';
 	};
@@ -90,7 +93,7 @@ function OneLineTerminal() {
 		if (trimmed === '?') {
 			return {
 				type: 'help',
-				text: `Available commands:\nnext, prev, leave, in\nnew line before, new line after\njump, read\nrun, clear, ? "command"`
+				text: `Available commands:\nnext, prev, leave, in\nnew line before, new line after\njump, read\nrun, clear, loaddemo, ? "command"`
 			};
 		}
 
@@ -169,6 +172,10 @@ function OneLineTerminal() {
 				: (trimmed.startsWith('s ') ? trimmed.substring(2).trim() || 'code.py' : 'code.py');
 			return { type: 'action', action: () => saveFile(filename) };
 		}
+		if (split[0] == 'ld' || split[0] == 'loaddemo'){
+			return {type: 'action', action: () => loadDemo(split[1])};
+		}
+
 
 		return { type: 'error', text: `Unknown command: ${trimmed}` };
 	};
