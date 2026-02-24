@@ -62,6 +62,14 @@ const findComment = (lines, commentName) => {
   return -1;
 };
 
+// Helper: Find first occurrence of a string in any line
+const findAny = (lines, searchTerm) => {
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes(searchTerm)) return i;
+  }
+  return -1;
+};
+
 export function useCodeActions() {
   const { code, setCode, activeLine, handleActiveLineChange, setTerminalOutput } = useApp();
   const codeRunnerRef = useRef(null);
@@ -215,6 +223,17 @@ export function useCodeActions() {
     }
   }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
 
+  const jumpToAny = useCallback((searchTerm) => {
+    const lines = code.split('\n');
+    const idx = findAny(lines, searchTerm);
+    if (idx !== -1) {
+      handleActiveLineChange(idx);
+      readLine(idx);
+    } else {
+      setTerminalOutput(`Text '${searchTerm}' not found`);
+    }
+  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
+
   const readActiveBlock = useCallback(() => {
     const lines = code.split('\n');
     const { start, end } = getBlock(lines, activeLine);
@@ -313,6 +332,7 @@ export function useCodeActions() {
     moveInOneLevel,
     jumpToFunction,
     jumpToComment,
+    jumpToAny,
     readLine,
     readActiveLine,
     readActiveBlock,
