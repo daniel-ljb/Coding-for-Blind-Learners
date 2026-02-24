@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { announce } from '@react-aria/live-announcer';
+import { announce, clearAnnouncer } from '@react-aria/live-announcer';
 import { createTree } from '../utils/pythonParser';
 
 const AppContext = createContext(null);
@@ -19,6 +19,7 @@ export function AppProvider({ children }) {
 
   const [terminalOutput, setTerminalOutput_] = useState('Press ? for available commands.');
   const setTerminalOutput = (msg) => {
+    clearAnnouncer()
     announce(msg);
     setTerminalOutput_(msg);
   };
