@@ -83,7 +83,7 @@ function CodeEditor() {
     return match ? Math.floor(match[1].length / 4) : 0;
   };
 
-  const buildNodesFromSyntaxTree = (tree, source) => {
+  const buildNodesFromCode = (source) => {
     const lines = source.split('\n');
     return lines.map((line) => {
       const [codePart, commentPart] = splitComment(line);
@@ -110,9 +110,9 @@ function CodeEditor() {
   useEffect(() => {
     if (code === lastSyncedCode.current) return;
     idCounter.current = 0;
-    setNodes(buildNodesFromSyntaxTree(syntaxTree, code));
+    setNodes(buildNodesFromCode(code));
     lastSyncedCode.current = code;
-  }, [code, syntaxTree]);
+  }, [code]);
 
   // When nodes change (like user edits), update code
   useEffect(() => {
