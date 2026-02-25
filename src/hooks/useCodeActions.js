@@ -33,7 +33,8 @@ const findPrevLineWithIndent = (lines, startIdx, targetIndent) => {
 export function useCodeActions() {
   const { 
     code, setCode, activeLine, handleActiveLineChange, setTerminalOutput,
-    outputHistory, setOutputHistory, outputIndex, setOutputIndex
+    outputHistory, setOutputHistory, outputIndex, setOutputIndex,
+    outputMode, setOutputMode
   } = useApp();
   
   const codeRunnerRef = useRef(null);
@@ -58,11 +59,47 @@ export function useCodeActions() {
     setTerminalOutput(`Out [${safeIdx + 1}/${history.length}]: ${history[safeIdx]}`);
   }, [outputHistory, setTerminalOutput, setOutputIndex]);
 
-  const nextOutput = useCallback(() => displayOutputLine(outputIndex + 1), [outputIndex, displayOutputLine]);
-  const prevOutput = useCallback(() => displayOutputLine(outputIndex - 1), [outputIndex, displayOutputLine]);
+  const enterOutputMode = useCallback((history = outputHistory) => {
+    if (history.length === 0) {
+      setTerminalOutput("No output available.");
+      setOutputMode(false);
+      return;
+    }
+    setOutputMode(true);
+    setOutputIndex(-1);
+    setTerminalOutput(
+      `Viewing output. Use n/p to navigate. Press n for first line. Type out or exit to leave.`
+    );
+  }, [outputHistory, setOutputMode, setOutputIndex, setTerminalOutput]);
+
+  const exitOutputMode = useCallback(() => {
+    setOutputMode(false);
+    setTerminalOutput("Exited output.");
+    readActiveLine();
+  }, [setOutputMode, setTerminalOutput, readActiveLine]);
+
+  const nextOutput = useCallback(() => {
+    if (outputHistory.length === 0) {
+      setTerminalOutput("No output available.");
+      return;
+    }
+    const nextIdx = outputIndex < 0 ? 0 : outputIndex + 1;
+    displayOutputLine(nextIdx);
+  }, [outputIndex, outputHistory, displayOutputLine, setTerminalOutput]);
+  
+  const prevOutput = useCallback(() => {
+    if (outputHistory.length === 0) {
+      setTerminalOutput("No output available.");
+      return;
+    }
+    const prevIdx = outputIndex <= 0 ? 0 : outputIndex - 1;
+    displayOutputLine(prevIdx);
+  }, [outputIndex, outputHistory, displayOutputLine, setTerminalOutput]);
 
   // --- restored navigation functions ---
   const moveToNextIndent = useCallback(() => {
+    if (outputMode) return nextOutput();
+
     const lines = code.split('\n');
     const indent = getIndentLevel(lines[activeLine]);
     const nextIdx = findNextLineWithIndent(lines, activeLine, indent);
@@ -71,6 +108,8 @@ export function useCodeActions() {
   }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveToPrevIndent = useCallback(() => {
+    if (outputMode) return prevOutput();
+
     const lines = code.split('\n');
     const indent = getIndentLevel(lines[activeLine]);
     const prevIdx = findPrevLineWithIndent(lines, activeLine, indent);
@@ -79,6 +118,8 @@ export function useCodeActions() {
   }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveOutOneLevel = useCallback(() => {
+    if (outputMode) return exitOutputMode();
+
     const lines = code.split('\n');
     const currentIndent = getIndentLevel(lines[activeLine]);
     for (let i = activeLine - 1; i >= 0; i--) {
@@ -167,25 +208,44 @@ export function useCodeActions() {
     const worker = new Worker(new URL('../codeExecution/python.worker.ts', import.meta.url));
     worker.onmessage = (e) => {
       const { type, data, result, error } = e.data;
+
       if (type === 'output') {
         setOutputHistory(prev => {
             const next = [...prev, data];
-            setTerminalOutput(`Out: ${data}`);
             return next;
         });
       }
-      else if (type === 'terminated') setTerminalOutput(`Finished. ${result}. Type 'op' to read results.`);
-      else if (type === 'error') setTerminalOutput(`Error: ${error}`);
+      else if (type === 'terminated'){
+        setOutputHistory(prev => {
+          if (prev.length === 0) {
+            setTerminalOutput(`Finished. ${result ?? ''}`.trim());
+            setOutputMode(false);
+          } else {
+            // Enter output mode with instructions, don't auto-read line 1
+            setOutputMode(true);
+            setOutputIndex(-1);
+            setTerminalOutput(
+              `Viewing output. Use n/p to navigate. Press n for first line. Type out or exit to leave.`
+            );
+          }
+          return prev;
+        });
+      }
+      else if (type === 'error') {
+        setTerminalOutput(`Error: ${error}`);
+        setOutputMode(false);
+      }
     };
     codeRunnerRef.current = worker;
   }, [setTerminalOutput, setOutputHistory]);
 
   const runCode = useCallback(() => {
+    setOutputMode(false);
     setOutputHistory([]); setOutputIndex(-1);
     setTerminalOutput("Running...");
     initCodeRunner();
     codeRunnerRef.current?.postMessage({ type: 'run', data: code });
-  }, [initCodeRunner, code, setOutputHistory, setTerminalOutput, setOutputIndex]);
+  }, [initCodeRunner, code, setOutputHistory, setTerminalOutput, setOutputIndex, setOutputMode]);
 
   // missing originals
   const readActiveBlock = useCallback(() => setTerminalOutput("Reading block... (Implementation depends on parser)"), [setTerminalOutput]);
@@ -210,6 +270,8 @@ export function useCodeActions() {
     readActiveLine, readActiveBlock, readActiveFunction,
     loadFile, saveFile,
     initCodeRunner, runCode,
-    nextOutput, prevOutput, loadDemo
+    nextOutput, prevOutput,
+    enterOutputMode, exitOutputMode,
+    loadDemo
   };
 }

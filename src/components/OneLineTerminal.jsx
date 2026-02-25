@@ -4,7 +4,7 @@ import { useCodeActions } from '../hooks/useCodeActions';
 
 function OneLineTerminal() {
 	const [input, setInput] = useState('');
-	const { terminalOutput, setTerminalOutput, mode } = useApp();
+	const { terminalOutput, setTerminalOutput, mode, outputMode } = useApp();
 	
 	const actions = useCodeActions();
 
@@ -20,17 +20,13 @@ function OneLineTerminal() {
 		const trimmed = cmd.trim();
 		const split = trimmed.split(' ');
 
-		if (trimmed === '?') return { type: 'help', text: 'Commands: next, prev, in, out, read, run, on, op, save, load' };
-
-		// Output History Navigation
-		if (trimmed === 'on') return { type: 'action', action: actions.nextOutput };
-		if (trimmed === 'op') return { type: 'action', action: actions.prevOutput };
+		if (trimmed === '?') return { type: 'help', text: 'Commands: n/next, p/prev, i/in, o/out, r/read, run, save, load, j/jump' };
 
 		// Navigation
-		if (['next','n','down','d'].includes(split[0])) return { type: 'action', action: actions.moveToNextIndent };
-		if (['prev','p','up','u'].includes(split[0])) return { type: 'action', action: actions.moveToPrevIndent };
-		if (['leave','l','left','out','o'].includes(split[0])) return { type: 'action', action: actions.moveOutOneLevel };
-		if (['in','i','right','r'].includes(split[0])) return { type: 'action', action: actions.moveInOneLevel };
+		if (['next','n'].includes(split[0])) return { type: 'action', action: actions.moveToNextIndent };
+		if (['prev','p'].includes(split[0])) return { type: 'action', action: actions.moveToPrevIndent };
+		if (['out','o'].includes(split[0])) return { type: 'action', action: actions.moveOutOneLevel };
+		if (['in','i'].includes(split[0])) return { type: 'action', action: actions.moveInOneLevel };
 
 		// Line creation
 		if (split[0] === "newline" || split[0] === "nl") {
@@ -53,7 +49,8 @@ function OneLineTerminal() {
 			if (split[1] === "func" || split[1] === "f") return { type: 'action', action: actions.readActiveFunction };
 			return { type: 'action', action: actions.readActiveLine };
 		}
-
+		
+		if (trimmed === 'exit') return { type: 'action', action: actions.exitOutputMode };
 		if (trimmed === 'run') return { type: 'action', action: actions.runCode };
 		if (split[0] === 'load' || split[0] === 'l') return { type: 'action', action: () => {
 			if (split[1] && split[1] !== 'local') 

@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
   // New state for navigating program output
   const [outputHistory, setOutputHistory] = useState([]);
   const [outputIndex, setOutputIndex] = useState(-1);
+  const [outputMode, setOutputMode] = useState(false);
 
   const syntaxTree = useMemo(() => createTree(code), [code]);
 
@@ -53,6 +54,7 @@ export function AppProvider({ children }) {
     mode, setMode,
     outputHistory, setOutputHistory,
     outputIndex, setOutputIndex,
+    outputMode, setOutputMode,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
