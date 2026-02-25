@@ -50,11 +50,11 @@ import traceback
 source = """${wrappedCode}
 """
 
-def format_error_for_screen_reader(exc: BaseException, preamble: int) -> str:
+def format_error_for_screen_reader(exc: BaseException) -> str:
     if isinstance(exc, SyntaxError):
         msg = exc.msg or exc.args[0]
         text = (exc.text or "").strip()
-        return f"SyntaxError: {msg}\\n{exc.lineno-preamble} {text}"
+        return f"SyntaxError: {msg}\\n{exc.lineno} {text}"
 
 
     tb = traceback.TracebackException.from_exception(exc)
@@ -66,7 +66,7 @@ def format_error_for_screen_reader(exc: BaseException, preamble: int) -> str:
 
         code = (frame.line or source.split("\\n")[frame.lineno-1] or "").strip()
         lines.append(
-            f"{frame.lineno-preamble} {code}"
+            f"{frame.lineno} {code}"
         )
 
     return "\\n".join(lines)
@@ -76,7 +76,7 @@ async def __run_user_code__():
         exec(source, globals())
         await globals()["__user_main__"]()
     except Exception as e:
-        print(format_error_for_screen_reader(e, 1))
+        print(format_error_for_screen_reader(e))
 
 await __run_user_code__()
 `;
@@ -102,3 +102,4 @@ await __run_user_code__()
 self.onerror = (error) => {
     self.postMessage({ type: 'error', error: error });
 };
+
