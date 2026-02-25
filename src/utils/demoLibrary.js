@@ -26,10 +26,12 @@ export const demoLibrary = {
   ].join('\n'),
 
   '3': [
+    'import time',
     'def run_countdown(seconds):',
     '    while seconds > 0:',
     '        print("Remaining time: " + str(seconds))',
     '        seconds = seconds - 1',
+    '        time.sleep(1)',
     '    print("System activated.")',
     '',
     'run_countdown(10)'

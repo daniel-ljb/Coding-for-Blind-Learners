@@ -79,6 +79,8 @@ function OneLineTerminal() {
 		// Standard navigation
 		if (e.key === 'ArrowDown' && !e.altKey) { e.preventDefault(); actions.moveToNextIndent(); }
 		if (e.key === 'ArrowUp' && !e.altKey) { e.preventDefault(); actions.moveToPrevIndent(); }
+		if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); actions.moveInOneLevel(); }
+		if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); actions.moveOutOneLevel(); }
 		// Output navigation
 		if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); actions.nextOutput(); }
 		if (e.key === 'ArrowUp' && e.altKey) { e.preventDefault(); actions.prevOutput(); }
