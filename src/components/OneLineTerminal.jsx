@@ -55,7 +55,12 @@ function OneLineTerminal() {
 		}
 
 		if (trimmed === 'run') return { type: 'action', action: actions.runCode };
-		if (trimmed === 'load' || trimmed === 'l') return { type: 'action', action: actions.loadFile };
+		if (split[0] === 'load' || split[0] === 'l') return { type: 'action', action: () => {
+			if (split[1] && split[1] !== 'local') 
+				actions.loadDemo(split[1]);
+			else
+				actions.loadFile();
+		}};
 		if (split[0] === 'save' || split[0] === 's') return { type: 'action', action: () => actions.saveFile(split[1] || 'code.py') };
 
 		return { type: 'error', text: `Unknown command: ${trimmed}` };
