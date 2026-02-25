@@ -24,7 +24,7 @@ function OneLineTerminal() {
 
 		// Output History Navigation
 		if (trimmed === 'on') return { type: 'action', action: actions.nextOutput };
-		if (trimmed === 'out') return { type: 'action', action: actions.prevOutput };
+		if (trimmed === 'op') return { type: 'action', action: actions.prevOutput };
 
 		// Navigation
 		if (['next','n','down','d'].includes(split[0])) return { type: 'action', action: actions.moveToNextIndent };
