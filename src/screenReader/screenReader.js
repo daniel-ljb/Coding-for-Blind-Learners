@@ -114,3 +114,33 @@ export function playTone(freq, duration = 0.5) {
         oscillator.stop(audioCtx.currentTime + duration);
     });
 }
+
+const SFX = {
+  'confirm1': 'Coding-for-Blind-Learners/sounds/confirm1.mp3',
+  'confirm2': 'Coding-for-Blind-Learners/sounds/confirm2.mp3',
+  'confirm3': 'Coding-for-Blind-Learners/sounds/confirm3.mp3',
+  'error1':   'Coding-for-Blind-Learners/sounds/error1.mp3'
+};
+
+const audioCache = new Map();
+
+export function playSfx(name, { volume = 1, rate = 1, overlap = true } = {}) {
+    const src = SFX[name];
+    if (!src) return;
+
+    let audio;
+    if (overlap) {
+        audio = new Audio(src);
+    } else {
+        audio = audioCache.get(name);
+        if (!audio) {
+            audio = new Audio(src);
+            audioCache.set(name, audio);
+        }
+        audio.currentTime = 0;
+    }
+
+    audio.volume = volume;
+    audio.playbackRate = rate;
+    audio.play().catch(err => console.error(err));
+}
