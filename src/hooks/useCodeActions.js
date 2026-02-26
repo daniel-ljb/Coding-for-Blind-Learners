@@ -38,6 +38,7 @@ export function useCodeActions() {
   } = useApp();
   
   const codeRunnerRef = useRef(null);
+  const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
 
   // --- restored read functions ---
   const readLine = useCallback((lineIdx) => {
@@ -105,7 +106,7 @@ export function useCodeActions() {
     const nextIdx = findNextLineWithIndent(lines, activeLine, indent);
     if (nextIdx !== -1) { handleActiveLineChange(nextIdx); readLine(nextIdx); }
     else setTerminalOutput('No next line with same indentation');
-  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+  }, [outputMode, nextOutput, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveToPrevIndent = useCallback(() => {
     if (outputMode) return prevOutput();
@@ -115,7 +116,7 @@ export function useCodeActions() {
     const prevIdx = findPrevLineWithIndent(lines, activeLine, indent);
     if (prevIdx !== -1) { handleActiveLineChange(prevIdx); readLine(prevIdx); }
     else setTerminalOutput('No previous line with same indentation');
-  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+  }, [outputMode, prevOutput, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveOutOneLevel = useCallback(() => {
     if (outputMode) return exitOutputMode();
@@ -128,7 +129,7 @@ export function useCodeActions() {
       }
     }
     setTerminalOutput('Already at root level');
-  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+  }, [outputMode, exitOutputMode, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
   const moveInOneLevel = useCallback(() => {
     const lines = code.split('\n');
@@ -142,27 +143,90 @@ export function useCodeActions() {
     setTerminalOutput('No child level found');
   }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
 
+  const startSearch = useCallback((mode, term, matches) => {
+    const t = (term || '').trim();
+    if (!t) {
+      setTerminalOutput(
+        mode === 'func' ? t = 'f'
+        : mode === 'com' ? t = 'c'
+        : 'Usage: j <term>'
+      );
+      return;
+    }
+
+    if (!matches || matches.length === 0) {
+      searchRef.current = { mode, term: t, matches: [], idx: -1 };
+      setTerminalOutput(`No matches for "${t}".`);
+      return;
+    }
+
+    searchRef.current = { mode, term: t, matches, idx: 0 };
+
+    const lineIdx = matches[0];
+    const lines = code.split('\n');
+    handleActiveLineChange(lineIdx);
+
+    if (matches.length > 1) {
+      setTerminalOutput(`Found ${matches.length} matches for "${t}". Jumped to 1/${matches.length}. Use jn/jp to navigate. ` +
+        `Line ${lineIdx + 1}: ${lines[lineIdx]}`);
+    } else {
+      setTerminalOutput(`Found 1 match for "${t}". Line ${lineIdx + 1} : ${lines[lineIdx]}.`);
+    }
+  }, [handleActiveLineChange, code, setTerminalOutput]);
+
   // --- restored jump functions ---
   const jumpToFunction = useCallback((name) => {
+    const t = (name || '').trim();
     const lines = code.split('\n');
-    const idx = lines.findIndex(l => l.includes(`def ${name}`));
-    if (idx !== -1) { handleActiveLineChange(idx); readLine(idx); }
-    else setTerminalOutput(`Function ${name} not found`);
-  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
+    const matches = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (t && lines[i].includes(`def ${t}`)) matches.push(i);
+    }
+    startSearch('func', t, matches);
+  }, [code, startSearch]);
 
   const jumpToComment = useCallback((name) => {
+    const t = (name || '').trim();
     const lines = code.split('\n');
-    const idx = lines.findIndex(l => l.includes('#') && l.includes(name));
-    if (idx !== -1) { handleActiveLineChange(idx); readLine(idx); }
-    else setTerminalOutput(`Comment ${name} not found`);
-  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
+    const matches = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (t && lines[i].includes('#') && lines[i].includes(t)) matches.push(i);
+    }
+    startSearch('com', t, matches);
+  }, [code, startSearch]);
 
   const jumpToAny = useCallback((term) => {
+    const t = (term || '').trim();
     const lines = code.split('\n');
-    const idx = lines.findIndex(l => l.includes(term));
-    if (idx !== -1) { handleActiveLineChange(idx); readLine(idx); }
-    else setTerminalOutput(`Text ${term} not found`);
-  }, [code, handleActiveLineChange, readLine, setTerminalOutput]);
+    const matches = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (t && lines[i].includes(t)) matches.push(i);
+    }
+    startSearch('any', t, matches);
+  }, [code, startSearch]);
+
+  const gotoMatch = useCallback((newIdx) => {
+    const { matches, term } = searchRef.current;
+    if (!matches || matches.length === 0) {
+      setTerminalOutput('No active search. Use j <term>, j f <name>, or j c <term> first.');
+      return;
+    }
+    const safeIdx = ((newIdx % matches.length) + matches.length) % matches.length; // wrap
+    searchRef.current.idx = safeIdx;
+
+    const lineIdx = matches[safeIdx];
+    const lines = code.split('\n');
+    handleActiveLineChange(lineIdx);
+    setTerminalOutput(`Match ${safeIdx + 1}/${matches.length} for "${term}". Line ${lineIdx + 1}: ${lines[lineIdx]}`);
+  }, [handleActiveLineChange, code, setTerminalOutput]);
+
+  const jumpNextMatch = useCallback(() => {
+    gotoMatch(searchRef.current.idx + 1);
+  }, [gotoMatch]);
+
+  const jumpPrevMatch = useCallback(() => {
+    gotoMatch(searchRef.current.idx - 1);
+  }, [gotoMatch]);
 
   // --- restored code editing ---
   const createLineAfter = useCallback(() => {
@@ -267,6 +331,7 @@ export function useCodeActions() {
     moveToNextIndent, moveToPrevIndent,
     moveOutOneLevel, moveInOneLevel,
     jumpToFunction, jumpToComment, jumpToAny,
+    jumpNextMatch, jumpPrevMatch,
     readActiveLine, readActiveBlock, readActiveFunction,
     loadFile, saveFile,
     initCodeRunner, runCode,
