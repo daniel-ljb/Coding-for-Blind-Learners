@@ -57,7 +57,7 @@ export function useCodeActions() {
     }
     const safeIdx = Math.max(0, Math.min(index, history.length - 1));
     setOutputIndex(safeIdx);
-    setTerminalOutput(`Out [${safeIdx + 1}/${history.length}]: ${history[safeIdx]}`);
+    setTerminalOutput(`Output [${safeIdx + 1} of ${history.length}]: ${history[safeIdx]}`);
   }, [outputHistory, setTerminalOutput, setOutputIndex]);
 
   const enterOutputMode = useCallback((history = outputHistory) => {
