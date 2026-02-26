@@ -54,7 +54,7 @@ function OneLineTerminal() {
 		const trimmed = cmd.trim();
 		const split = trimmed.split(' ');
 
-		if (trimmed === '?') return { type: 'help', text: 'Commands: n/next, p/prev, i/in, o/out, r/read, run, save, load, j/jump, exit.\nType ? to repeat. Type ? <command> for details (without quotes).' };
+		if (trimmed === '?') return { type: 'help', text: 'Commands: n/next, p/prev, i/in, o/out, r/read, run, save, load, j/jump, exit.\nKeyboard shortcuts: Ctrl+Shift+M to toggle mode, Ctrl+Alt+M to announce mode.\nType ? to repeat. Type ? <command> for details (without quotes).' };
 
 		if (split[0] === '?' && split.length > 1) {
 			const key = split[1].toLowerCase();
@@ -146,9 +146,6 @@ function OneLineTerminal() {
 		if (e.key === 'ArrowUp' && !e.altKey && !e.shiftKey && !e.ctrlKey) { e.preventDefault(); actions.moveToPrevIndent(); }
 		if (e.key === 'ArrowRight' && !e.altKey && !e.shiftKey && !e.ctrlKey) { e.preventDefault(); actions.moveInOneLevel(); }
 		if (e.key === 'ArrowLeft' && !e.altKey && !e.shiftKey && !e.ctrlKey) { e.preventDefault(); actions.moveOutOneLevel(); }
-		// Output navigation
-		if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); actions.nextOutput(); }
-		if (e.key === 'ArrowUp' && e.altKey) { e.preventDefault(); actions.prevOutput(); }
 	};
 
 	return (
