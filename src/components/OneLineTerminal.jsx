@@ -86,13 +86,11 @@ function OneLineTerminal() {
 			return { type: 'action', action: () => actions.jumpToComment(target) };
 		}
 		if (split[0] === "jump" || split[0] === "j") {
-			const hasMode = (split[1] === "func" || split[1] === "f" || split[1] === "com" || split[1] === "c");
-			if (hasMode && split.length >= 3) {
-				const term = split.slice(2).join(" ");
-				if (split[1] === "func" || split[1] === "f") {
-				return { type: 'action', action: () => actions.jumpToFunction(term) };
-				}
-				return { type: 'action', action: () => actions.jumpToComment(term) };
+			if (split.length >= 3) {
+				// Look at original text in case they have two spaces in a comment
+				const term = trimmed.slice(trimmed.indexOf(" ", trimmed.indexOf(" ") + 1) + 1);
+				if (split[1] === "func" || split[1] === "f") return { type: 'action', action: () => actions.jumpToFunction(term) };
+				if (split[1] === "com" || split[1] === "c") return { type: 'action', action: () => actions.jumpToComment(term) };
 			}
 			const term = split.slice(1).join(" ");
 			return { type: 'action', action: () => actions.jumpToAny(term) };
