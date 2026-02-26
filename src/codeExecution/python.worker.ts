@@ -50,33 +50,30 @@ import traceback
 source = """${wrappedCode}
 """
 
-def format_error_for_screen_reader(exc: BaseException) -> str:
+def print_error_for_screen_reader(exc: BaseException) -> str:
     if isinstance(exc, SyntaxError):
         msg = exc.msg or exc.args[0]
         text = (exc.text or "").strip()
-        return f"SyntaxError: {msg}\\n{exc.lineno} {text}"
+        print(f"SyntaxError: {msg}")
+        print(f"{exc.lineno} {text}")
 
 
     tb = traceback.TracebackException.from_exception(exc)
-    lines = [f"{type(exc).__name__}: {exc}"]
+    print(f"{type(exc).__name__}: {exc}")
     code_lines = source.split("\\n")
     for frame in reversed(tb.stack):
         if frame.lineno > len(code_lines):
             continue
 
         code = (frame.line or source.split("\\n")[frame.lineno-1] or "").strip()
-        lines.append(
-            f"{frame.lineno} {code}"
-        )
-
-    return "\\n".join(lines)
+        print(f"{frame.lineno} {code}")
 
 async def __run_user_code__():
     try:
         exec(source, globals())
         await globals()["__user_main__"]()
     except Exception as e:
-        print(format_error_for_screen_reader(e))
+        print_error_for_screen_reader(e)
 
 await __run_user_code__()
 `;
