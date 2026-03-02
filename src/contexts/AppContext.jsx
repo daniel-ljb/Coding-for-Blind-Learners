@@ -18,7 +18,7 @@ export function AppProvider({ children }) {
 
   const [activeLine, setActiveLine] = useState(0);
   const [terminalOutput, setTerminalOutput_] = useState('Press ? for available commands.');
-  const [mode, setMode] = useState('terminal');
+  const [mode, setMode] = useState('edit');
   
   // New state for navigating program output
   const [outputHistory, setOutputHistory] = useState([]);

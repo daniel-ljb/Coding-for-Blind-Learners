@@ -1,4 +1,5 @@
 export const demoLibrary = {
+  '0': [''], //For making a new file
   '1': [
     'def evaluate_score(points):',
     '    if points >= 90:',
