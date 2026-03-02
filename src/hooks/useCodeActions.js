@@ -44,7 +44,7 @@ export function useCodeActions() {
   const readLine = useCallback((lineIdx) => {
     const lines = code.split('\n');
     if (lineIdx < 0 || lineIdx >= lines.length) return;
-    setTerminalOutput(`Line ${lineIdx + 1}: ${lines[lineIdx]}`);
+    setTerminalOutput(`${lines[lineIdx]}`);
   }, [code, setTerminalOutput]);
 
   const readActiveLine = useCallback(() => readLine(activeLine), [activeLine, readLine]);
@@ -57,7 +57,7 @@ export function useCodeActions() {
     }
     const safeIdx = Math.max(0, Math.min(index, history.length - 1));
     setOutputIndex(safeIdx);
-    setTerminalOutput(`Output [${safeIdx + 1} of ${history.length}]: ${history[safeIdx]}`);
+    setTerminalOutput(`Output: ${history[safeIdx]}`);
   }, [outputHistory, setTerminalOutput, setOutputIndex]);
 
   const enterOutputMode = useCallback((history = outputHistory) => {

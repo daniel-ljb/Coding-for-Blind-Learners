@@ -38,6 +38,9 @@ function OneLineTerminal() {
 		jn:	  "jn: Jump to next match of the last search term.",
 		jp:   "jp: Jump to previous match of the last search term",
 
+		demo: "demo (d): Load a demo project. Usage: demo <number>.",
+		d:    "demo (d): Load a demo project. Usage: demo <number>.",
+
 		exit: "exit: Exit output view (same as out when viewing output).",
 		"?":  "?: Show command list. Use ? <command> for details."
 	};
@@ -54,7 +57,8 @@ function OneLineTerminal() {
 		const trimmed = cmd.trim();
 		const split = trimmed.split(' ');
 
-		if (trimmed === '?') return { type: 'help', text: 'Commands: n/next, p/prev, i/in, o/out, r/read, run, save, load, j/jump, exit.\nKeyboard shortcuts: Ctrl+Shift+M to toggle mode, Ctrl+Alt+M to announce mode.\nType ? to repeat. Type ? <command> for details (without quotes).' };
+		// if (trimmed === '?') return { type: 'help', text: 'Commands: n/next, p/prev, i/in, o/out, r/read, run, save, load, j/jump, exit.\nKeyboard shortcuts: Ctrl+Shift+M to toggle mode, Ctrl+Alt+M to announce mode.\nType ? <command> for details (without quotes).' };
+		if (trimmed === '?') return { type: 'help', text: 'Commands: n = next, p = prev, i = in, o = out, r = read, run, save, load, j = jump, exit.\nKeyboard shortcuts: Ctrl+Shift+M to toggle mode, Ctrl+Alt+M to announce mode.\nType ? <command> for details (without quotes).' };
 
 		if (split[0] === '?' && split.length > 1) {
 			const key = split[1].toLowerCase();
@@ -65,10 +69,10 @@ function OneLineTerminal() {
 		}
 
 		// Navigation
-		if (['next','n'].includes(split[0])) return { type: 'action', action: actions.moveToNextIndent };
-		if (['prev','p'].includes(split[0])) return { type: 'action', action: actions.moveToPrevIndent };
-		if (['out','o'].includes(split[0])) return { type: 'action', action: actions.moveOutOneLevel };
-		if (['in','i'].includes(split[0])) return { type: 'action', action: actions.moveInOneLevel };
+		if (['n'].includes(split[0])) return { type: 'action', action: actions.moveToNextIndent };
+		if (['p'].includes(split[0])) return { type: 'action', action: actions.moveToPrevIndent };
+		if (['o'].includes(split[0])) return { type: 'action', action: actions.moveOutOneLevel };
+		if (['i'].includes(split[0])) return { type: 'action', action: actions.moveInOneLevel };
 
 		// Line creation
 		if (split[0] === "newline" || split[0] === "nl") {
@@ -85,7 +89,7 @@ function OneLineTerminal() {
 			const target = split.slice(1).join(' ');
 			return { type: 'action', action: () => actions.jumpToComment(target) };
 		}
-		if (split[0] === "jump" || split[0] === "j") {
+		if (split[0] === "j") {
 			if (split.length >= 3) {
 				// Look at original text in case they have two spaces in a comment
 				const term = trimmed.slice(trimmed.indexOf(" ", trimmed.indexOf(" ") + 1) + 1);
@@ -108,12 +112,24 @@ function OneLineTerminal() {
 		
 		if (trimmed === 'exit') return { type: 'action', action: actions.exitOutputMode };
 		if (trimmed === 'run') return { type: 'action', action: actions.runCode };
+
 		if (split[0] === 'load' || split[0] === 'l') return { type: 'action', action: () => {
 			if (split[1] && split[1] !== 'local') 
 				actions.loadDemo(split[1]);
 			else
 				actions.loadFile();
 		}};
+
+		if (split[0] === 'demo' || split[0] === 'd') {
+            return { 
+                type: 'action', 
+                action: () => {
+                    const demoNumber = split.slice(1).join(' ') || 'default';
+                    actions.loadDemo(demoNumber);
+                } 
+            };
+        }
+
 		if (split[0] === 'save' || split[0] === 's') return { type: 'action', action: () => actions.saveFile(split[1] || 'code.py') };
 
 		return { type: 'error', text: `Unknown command: ${trimmed}` };
