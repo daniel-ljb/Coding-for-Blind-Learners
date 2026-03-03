@@ -3,35 +3,7 @@ import { useApp } from '../contexts/AppContext';
 import 'prismjs/themes/prism-dark.css'; 
 import './CodeEditor.css'; 
 import { useCodeActions } from '../hooks/useCodeActions';
-
-const BLOCK_RULES = {
-  "if": { "hasExpression": true, "isContinuation": false},
-  "elif": { "hasExpression": true, "isContinuation": true, "validParents": ["if", "elif"]},
-  "else": { "hasExpression": false, "isContinuation": true, "validParents": ["if", "elif", "try", "except", "for", "while"]},
-  "def": { "hasExpression": true, "isContinuation": false },
-  "class": { "hasExpression": true, "isContinuation": false},
-  "for": { "hasExpression": true, "isContinuation": false },
-  "while": { "hasExpression": true, "isContinuation": false},
-  "with": { "hasExpression": true, "isContinuation": false},
-  "try": { "hasExpression": false, "isContinuation": false },
-  "except": { "hasExpression": true, "isContinuation": true, "validParents": ["try", "except"]},
-  "finally": { "hasExpression": false, "isContinuation": true, "validParents": ["try", "except", "else"] },
-  "match": { "hasExpression": true, "isContinuation": false},
-  "case": { "hasExpression": true, "isContinuation": true, "validParents": ["match", "case"] }
-};
-
-const BLOCK_HINT = {
-  "if": "Enter if condition",
-  "elif": "Enter elif condition",
-  "def": "Enter function signature",
-  "class": "Enter class",
-  "for": "Enter for loop expression",
-  "while": "Enter while loop condition",
-  "with": "Enter with statement expression",
-  "except": "Enter exception type",
-  "match": "Enter match expression",
-  "case": "Enter case pattern"
-}
+import { BLOCK_RULES } from '../utils/blocks';
 
 function CodeEditor() {
   const { code, setCode, activeLine, setActiveLine, syntaxTree, mode } = useApp();
@@ -40,13 +12,7 @@ function CodeEditor() {
   const lastSyncedCode = useRef(code);
   const idCounter = useRef(0);
 
-  const {
-    createLineAfter,
-    moveToPrevIndent,
-    moveToNextIndent,
-  } = useCodeActions();
-
-  // auto focus on mode change
+  // auto focus on mode and active line change
   useEffect(() => {
     if (mode === 'edit') {
       const activeNode = nodes[activeLine];
@@ -54,7 +20,7 @@ function CodeEditor() {
         inputRefs.current[activeNode.id]?.focus();
       }
     }
-  }, [mode, activeLine]);
+  }, [mode, activeLine, nodes]);
 
   const makeId = () => `line-${idCounter.current++}`;
 
@@ -176,23 +142,35 @@ function CodeEditor() {
       setTimeout(() => inputRefs.current[nextId]?.focus(), 0);
     }
 
-    // 4. Backspace: Indent Reduction & Line Deletion
+    // 4. Backspace: Line Deletion
     if (e.key === 'Backspace' && selectionStart === 0) {
-      if (node.indent > 0) {
-        e.preventDefault();
-        setNodes(nodes.map((n, i) => i === index ? { ...n, indent: n.indent - 1 } : n));
-      } else if (index > 0 && !node.content && node.comment === null) {
-        // Only delete if totally empty and at indent 0
+      if (!node.content && node.comment === null) {
         e.preventDefault();
         const prevIndex = index - 1;
-        const newNodes = nodes.filter((_, i) => i !== index);
+        let newNodes = nodes.filter((_, i) => i !== index);
+        
+        // If deleting a keyword node, unindent all nested code
+        if (node.type === 'keyword') {
+          const keywordIndent = node.indent;
+          // Find the range of nested code
+          let endOfBlock = index;
+          for (let i = index; i < newNodes.length; i++) {
+            if (newNodes[i].indent > keywordIndent) {
+              endOfBlock = i;
+            } else {
+              break;
+            }
+          }
+          // Unindent all nested lines
+          newNodes = newNodes.map((n, i) => {
+            if (i >= index && i <= endOfBlock && n.indent > keywordIndent) {
+              return { ...n, indent: n.indent - 1 };
+            }
+            return n;
+          });
+        }
+        
         setNodes(newNodes);
-        setActiveLine(prevIndex);
-        setTimeout(() => {
-          const prev = newNodes[prevIndex];
-          const target = prev.comment !== null ? `${prev.id}-cmt` : prev.id;
-          inputRefs.current[target]?.focus();
-        }, 0);
       }
     }
   };

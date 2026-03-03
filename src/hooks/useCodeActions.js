@@ -1,34 +1,8 @@
 import { useCallback, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { demoLibrary } from '../utils/demoLibrary';
-
-// --- Original Helpers ---
-const getIndentLevel = (line) => {
-    const match = line?.match(/^(\s*)/);
-    return match ? match[1].length : 0;
-};
-
-const findNextLineWithIndent = (lines, startIdx, targetIndent) => {
-    for (let i = startIdx + 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-        const indent = getIndentLevel(line);
-        if (indent < targetIndent) break;
-        if (indent === targetIndent) return i;
-    }
-    return -1;
-};
-
-const findPrevLineWithIndent = (lines, startIdx, targetIndent) => {
-    for (let i = startIdx - 1; i >= 0; i--) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-        const indent = getIndentLevel(line);
-        if (indent < targetIndent) break;
-        if (indent === targetIndent) return i;
-    }
-    return -1;
-};
+import { BLOCK_RULES } from '../utils/blocks';
+import { getIndentLevel, findNextLineWithIndent, findPrevLineWithIndent } from '../utils/codeUtils';
 
 export function useCodeActions() {
     const {
@@ -39,7 +13,6 @@ export function useCodeActions() {
 
     const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
 
-    // --- restored read functions ---
     const readActiveLine = useCallback(() => {
         const lines = code.split('\n');
         speakLine(lines[activeLine]);
@@ -77,7 +50,6 @@ export function useCodeActions() {
         updateAndSpeakOutputLine(prevIdx);
     }, [outputIndex, outputHistory, updateAndSpeakOutputLine, speakLine, setOutputIndex]);
 
-    // --- restored navigation functions ---
     const moveToNextIndent = useCallback(() => {
         const lines = code.split('\n');
         const indent = getIndentLevel(lines[activeLine]);
@@ -98,7 +70,7 @@ export function useCodeActions() {
         const lines = code.split('\n');
         const currentIndent = getIndentLevel(lines[activeLine]);
         for (let i = activeLine - 1; i >= 0; i--) {
-            if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) {
+            if (getIndentLevel(lines[i]) < currentIndent) {
                 handleActiveLineChange(i); return;
             }
         }
@@ -109,10 +81,10 @@ export function useCodeActions() {
         const lines = code.split('\n');
         const currentIndent = getIndentLevel(lines[activeLine]);
         for (let i = activeLine + 1; i < lines.length; i++) {
-            if (lines[i].trim() && getIndentLevel(lines[i]) > currentIndent) {
+            if (getIndentLevel(lines[i]) > currentIndent) {
                 handleActiveLineChange(i); return;
             }
-            if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) break;
+            if (getIndentLevel(lines[i]) < currentIndent) break;
         }
         speakLine('No child level found');
     }, [code, activeLine, handleActiveLineChange, speakLine]);
@@ -129,7 +101,6 @@ export function useCodeActions() {
         handleActiveLineChange(lineIdx);
     }, [handleActiveLineChange, code, speakLine]);
 
-    // --- restored jump functions ---
     const jumpToAny = useCallback((term) => {
         const t = (term || '').trim();
         const lines = code.split('\n');
@@ -162,10 +133,14 @@ export function useCodeActions() {
         gotoMatch(searchRef.current.idx - 1);
     }, [gotoMatch]);
 
-    // --- restored code editing ---
     const createLineAfter = useCallback(() => {
         const lines = code.split('\n');
-        const indent = getIndentLevel(lines[activeLine] || '');
+        let indent = getIndentLevel(lines[activeLine] || '');
+        console.log(lines[activeLine]);
+        if(lines[activeLine].trim().split(' ')[0] in BLOCK_RULES) {
+            console.log('Current line is a block header, increasing indent for new line: ', indent);
+            indent += 4;
+        }
         lines.splice(activeLine + 1, 0, ' '.repeat(indent));
         setCode(lines.join('\n'));
         handleActiveLineChange(activeLine + 1);
@@ -176,9 +151,9 @@ export function useCodeActions() {
         const indent = getIndentLevel(lines[activeLine] || '');
         lines.splice(activeLine, 0, ' '.repeat(indent));
         setCode(lines.join('\n'));
+        handleActiveLineChange(activeLine);
     }, [code, activeLine, setCode, speakLine]);
 
-    // --- restored File I/O ---
     const saveFile = useCallback((filename = 'code.py') => {
         const blob = new Blob([code], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -198,7 +173,6 @@ export function useCodeActions() {
         } catch (e) { if (e.name !== 'AbortError') speakLine("Load failed"); }
     }, [setCode, handleActiveLineChange, speakLine]);
 
-    // --- restored Execution ---
     const initCodeRunner = useCallback(() => {
         if (codeRunnerRef.current) return;
         const worker = new Worker(new URL('../codeExecution/python.worker.ts', import.meta.url));

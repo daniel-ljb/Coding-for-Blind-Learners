@@ -128,7 +128,7 @@ function CustomShortcuts() {
                     else if (editMode) readActiveLine();
                     else repeatOutput();
                 }
-                else if(c && s && k === 'l') {
+                else if(c && k === 'l') {
                     if(executeMode) return;
                     e.preventDefault();
                     setArgumentCallback(() => (argument) => {
@@ -139,7 +139,7 @@ function CustomShortcuts() {
                     });
                     setMode('argument'); //TODO: Way to store previous mode
                 }
-                else if(c && s && k === 's') {
+                else if(c && k === 's') {
                     if(executeMode) return;
                     e.preventDefault();
                     saveFile();
