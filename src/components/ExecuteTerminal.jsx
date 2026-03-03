@@ -17,7 +17,7 @@ function ExecuteTerminal() {
 
 	const handleTerminalInput = (e) => {
 		e.preventDefault();
-        actions.giveCodeInput(input)
+        actions.giveCodeInput(input);
         setInput('');
 	};
 

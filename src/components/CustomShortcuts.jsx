@@ -2,42 +2,40 @@ import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useCodeActions } from '../hooks/useCodeActions';
 
-const COMMAND_HELP = {
-    next: "next (n): Move to next item at current indentation. In output view: next output line.",
-    n:    "next (n): Move to next item at current indentation. In output view: next output line.",
-
-    prev: "prev (p): Move to previous item at current indentation. In output view: previous output line.",
-    p:    "prev (p): Move to previous item at current indentation. In output view: previous output line.",
-
-    in:   "in (i): Move into the first child block (one indentation deeper).",
-    i:    "in (i): Move into the first child block (one indentation deeper).",
-
-    out:  "out (o): Move out one level. In output view: exit output view.",
-    o:    "out (o): Move out one level. In output view: exit output view.",
-
-    read: "read (r): Read code. Use: r l (line), r b (block), r f (function). Default: r l.",
-    r:    "read (r): Read code. Use: r l (line), r b (block), r f (function). Default: r l.",
-    rl:   "r l: Read the active line.",
-    rb:   "r b: Read the active block.",
-    rf:   "r f: Read the active function.",
-
-    run:  "run: Run the current code. If output exists, enters output view.",
-    save: "save (s): Save code to a file. Usage: save filename.py (default: code.py).",
-    s:    "save (s): Save code to a file. Usage: save filename.py (default: code.py).",
-    load: "load (l): Load code from a local file picker.",
-    l:    "load (l): Load code from a local file picker.",
-
-    jump: "jump (j): Search for a word/phrase in the code and jump to the first match. Usage: j <term>, j f <func>, j c <comment>. If there are multiple matches, use jn (next) / jp (previous).",
-    j:    "jump (j): Search for a word/phrase in the code and jump to the first match. Usage: j <term>, j f <func>, j c <comment>. If there are multiple matches, use jn (next) / jp (previous).",
-    jn:	  "jn: Jump to next match of the last search term.",
-    jp:   "jp: Jump to previous match of the last search term",
-
-    exit: "exit: Exit output view (same as out when viewing output).",
-    "?":  "?: Show command list. Use ? <command> for details."
+const EDIT_COMMAND_HELP = {
+    "u": "Previous line with same indent",
+    "U": "New line before",
+    "d": "Next line with same indent",
+    "D": "New line after",
+    "o": "Out one indent level",
+    "i": "IN one indent level",
+    "r": "Read current line",
+    "R": "Verbose read current line",
+    "l": "Load file. Opens argument mode. Numbers 0 to 10 give demos, everything else opens folder",
+    "s": "Save as file",
+    "/": "Help. Opens argument mode",
+    "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Capital J searches in opposite direction.",
+    "J": "Repeates search backwards",
+    "e": "Executes program and opens edit mode.",
+    "m": "Switches between edit and execute mode",
 };
+const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "J", "e", "m", ]
+const EXECUTE_COMMAND_HELP = {
+    "u": "Previous output line",
+    "d": "Next output line",
+    "o": "Previous output line",
+    "i": "Next output line",
+    "r": "Read current output line",
+    "R": "Verbose read current output line",
+    "/": "Help. Opens argument mode",
+    "e": "Executes program and stays in edit mode.",
+    "m": "Switches between edit and execute mode",
+    "g": "Jumps to the line that caused the current error. Opens edit mode.",
+};
+const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "e", "m", "g"];
 
 function CustomShortcuts() {
-    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback } = useApp();
+    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, speakLine } = useApp();
     const {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
@@ -98,7 +96,7 @@ function CustomShortcuts() {
                 Anything else is treated as the argument
             */
             if (editMode || executeMode) {
-                if((c && k === 'y') || k === 'arrowup') {
+                if((c && k === 'u') || k === 'arrowup') {
                     e.preventDefault();
                     if(s && editMode) createLineBefore();
                     else if (editMode) moveToPrevIndent();
@@ -113,13 +111,11 @@ function CustomShortcuts() {
                 else if(c && k === 'o') {
                     e.preventDefault();
                     if(editMode) moveOutOneLevel();
-                    else if (editMode) moveToPrevIndent();
                     else prevOutput();
                 }
                 else if(c && k === 'i') {
                     e.preventDefault();
                     if(editMode) moveInOneLevel();
-                    else if (editMode) moveToNextIndent();
                     else nextOutput();
                 }
                 else if(c && k === 'r') {
@@ -139,19 +135,26 @@ function CustomShortcuts() {
                     });
                     setMode('argument'); //TODO: Way to store previous mode
                 }
-                else if(c && k === 's') {
+                else if(c && s && k === 's') {
                     if(executeMode) return;
                     e.preventDefault();
                     saveFile();
                 }
                 else if(c && k === '/') {
-                    e.preventDefault();
+                    if(s) {
+                        e.preventDefault();
                         setArgumentCallback(() => (argument) => {
-                        setMode(mode)
-                        if(argument == null) return;
-                        GetHelp(argument)
-                    });
-                    setMode('argument'); //TODO: Way to store previous mode
+                            setMode(mode)
+                            if (argument == null) return;
+                            const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument]
+                            if (help == null) speakLine("Invalid command.")
+                            else speakLine(help);
+                        });
+                        setMode('argument'); //TODO: Way to store previous mode
+                    } else {
+                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(" ")
+                        speakLine(`Available commands: control plus ${avilableCommands}`)
+                    }
                 }
                 else if(c && k === 'j') {
                     if(executeMode) return;
