@@ -46,21 +46,15 @@ function CodeEditor() {
     moveToNextIndent,
   } = useCodeActions();
 
-  const { setTerminalOutput } = useApp();
-
   // auto focus on mode change
   useEffect(() => {
     if (mode === 'edit') {
       const activeNode = nodes[activeLine];
-      console.log('Active Node on Mode Change:', activeNode);
       if (activeNode) {
         inputRefs.current[activeNode.id]?.focus();
-        if (BLOCK_HINT[activeNode.keyword] && activeNode.content === '') {
-          setTerminalOutput(BLOCK_HINT[activeNode.keyword]);
-        }
       }
     }
-  }, [mode]);
+  }, [mode, activeLine]);
 
   const makeId = () => `line-${idCounter.current++}`;
 
@@ -165,8 +159,6 @@ function CodeEditor() {
       const newNodes = [...nodes];
       newNodes[index] = { ...node, type: 'keyword', keyword: trimmed, content: '' };
       setNodes(newNodes);
-      if (BLOCK_HINT[trimmed])
-        setTerminalOutput(BLOCK_HINT[trimmed]);
       setTimeout(() => inputRefs.current[node.id]?.focus(), 0);
     }
 
@@ -202,16 +194,6 @@ function CodeEditor() {
           inputRefs.current[target]?.focus();
         }, 0);
       }
-    }
-
-    // 5. Navigation 
-    if (e.key === 'ArrowUp' && !e.shiftKey && !e.ctrlKey && !e.altKey && index > 0) {
-      e.preventDefault();
-      moveToPrevIndent();
-    }
-    if (e.key === 'ArrowDown' && !e.shiftKey && !e.ctrlKey && !e.altKey && index < nodes.length - 1) {
-      e.preventDefault();
-      moveToNextIndent();
     }
   };
 
@@ -272,7 +254,7 @@ function CodeEditor() {
                         setNodes(nodes.map(n => n.id === node.id ? {...n, comment: null} : n));
                         setTimeout(() => inputRefs.current[node.id]?.focus(), 0);
                       }
-                      if (['Enter', 'ArrowUp', 'ArrowDown'].includes(e.key)) handleKeyDown(e, node, index);
+                      if (['Enter'].includes(e.key)) handleKeyDown(e, node, index);
                     }}
                   />
                 </div>

@@ -1,5 +1,5 @@
 export const demoLibrary = {
-  '0': [''], //For making a new file
+  '0': '', //For making a new file
   '1': [
     'def evaluate_score(points):',
     '    if points >= 90:',
@@ -170,8 +170,8 @@ export const demoLibrary = {
     '    return grid',
     '',
     'def print_grid(grid):',
-    '    for row in grid: print(row)',
-    '',
+    '    for row in grid:',
+    '        print(row)',
     'g = create_grid(3, 4)',
     'print_grid(g)'
   ].join('\n')

@@ -4,339 +4,268 @@ import { demoLibrary } from '../utils/demoLibrary';
 
 // --- Original Helpers ---
 const getIndentLevel = (line) => {
-  const match = line?.match(/^(\s*)/);
-  return match ? match[1].length : 0;
+    const match = line?.match(/^(\s*)/);
+    return match ? match[1].length : 0;
 };
 
 const findNextLineWithIndent = (lines, startIdx, targetIndent) => {
-  for (let i = startIdx + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const indent = getIndentLevel(line);
-    if (indent < targetIndent) break; 
-    if (indent === targetIndent) return i;
-  }
-  return -1;
+    for (let i = startIdx + 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const indent = getIndentLevel(line);
+        if (indent < targetIndent) break;
+        if (indent === targetIndent) return i;
+    }
+    return -1;
 };
 
 const findPrevLineWithIndent = (lines, startIdx, targetIndent) => {
-  for (let i = startIdx - 1; i >= 0; i--) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const indent = getIndentLevel(line);
-    if (indent < targetIndent) break;
-    if (indent === targetIndent) return i;
-  }
-  return -1;
+    for (let i = startIdx - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const indent = getIndentLevel(line);
+        if (indent < targetIndent) break;
+        if (indent === targetIndent) return i;
+    }
+    return -1;
 };
 
 export function useCodeActions() {
-  const { 
-    code, setCode, activeLine, handleActiveLineChange, setTerminalOutput,
-    outputHistory, setOutputHistory, outputIndex, setOutputIndex,
-    outputMode, setOutputMode
-  } = useApp();
-  
-  const codeRunnerRef = useRef(null);
-  const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
+    const {
+        code, setCode, activeLine, handleActiveLineChange, speakLine,
+        outputHistory, setOutputHistory, outputIndex, setOutputIndex,
+        codeRunnerRef
+    } = useApp();
 
-  // --- restored read functions ---
-  const readLine = useCallback((lineIdx) => {
-    const lines = code.split('\n');
-    if (lineIdx < 0 || lineIdx >= lines.length) return;
-    setTerminalOutput(`Line ${lineIdx + 1}: ${lines[lineIdx]}`);
-  }, [code, setTerminalOutput]);
+    const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
 
-  const readActiveLine = useCallback(() => readLine(activeLine), [activeLine, readLine]);
+    // --- restored read functions ---
+    const readActiveLine = useCallback(() => {
+        const lines = code.split('\n');
+        speakLine(lines[activeLine]);
+    }, [code, speakLine]);
 
-  // --- NEW: Output Navigation ---
-  const displayOutputLine = useCallback((index, history = outputHistory) => {
-    if (history.length === 0) {
-      setTerminalOutput("No output available.");
-      return;
-    }
-    const safeIdx = Math.max(0, Math.min(index, history.length - 1));
-    setOutputIndex(safeIdx);
-    setTerminalOutput(`Output [${safeIdx + 1} of ${history.length}]: ${history[safeIdx]}`);
-  }, [outputHistory, setTerminalOutput, setOutputIndex]);
+    const updateAndSpeakOutputLine = useCallback((index) => {
+        const safeIdx = Math.max(0, Math.min(index, outputHistory.length - 1));
+        setOutputIndex(safeIdx)
+        speakLine(outputHistory[safeIdx])
+    }, [speakLine, outputHistory, setOutputIndex])
 
-  const enterOutputMode = useCallback((history = outputHistory) => {
-    if (history.length === 0) {
-      setTerminalOutput("No output available.");
-      setOutputMode(false);
-      return;
-    }
-    setOutputMode(true);
-    setOutputIndex(-1);
-    setTerminalOutput(
-      `Viewing output. Use n/p to navigate. Press n for first line. Type out or exit to leave.`
-    );
-  }, [outputHistory, setOutputMode, setOutputIndex, setTerminalOutput]);
+    const repeatOutput = useCallback(() => {
+        if (outputHistory.length === 0) {
+            speakLine("No output");
+            return;
+        }
+        updateAndSpeakOutputLine(outputIndex);
+    }, [outputIndex, updateAndSpeakOutputLine, outputHistory]);
 
-  const exitOutputMode = useCallback(() => {
-    setOutputMode(false);
-    setTerminalOutput("Exited output.");
-    readActiveLine();
-  }, [setOutputMode, setTerminalOutput, readActiveLine]);
+    const nextOutput = useCallback(() => {
+        if (outputHistory.length === 0) {
+            speakLine("No output");
+            return;
+        }
+        const nextIdx = outputIndex < 0 ? 0 : outputIndex + 1;
+        updateAndSpeakOutputLine(nextIdx);
+    }, [outputIndex, updateAndSpeakOutputLine, outputHistory]);
 
-  const nextOutput = useCallback(() => {
-    if (outputHistory.length === 0) {
-      setTerminalOutput("No output available.");
-      return;
-    }
-    const nextIdx = outputIndex < 0 ? 0 : outputIndex + 1;
-    displayOutputLine(nextIdx);
-  }, [outputIndex, outputHistory, displayOutputLine, setTerminalOutput]);
-  
-  const prevOutput = useCallback(() => {
-    if (outputHistory.length === 0) {
-      setTerminalOutput("No output available.");
-      return;
-    }
-    const prevIdx = outputIndex <= 0 ? 0 : outputIndex - 1;
-    displayOutputLine(prevIdx);
-  }, [outputIndex, outputHistory, displayOutputLine, setTerminalOutput]);
+    const prevOutput = useCallback(() => {
+        if (outputHistory.length === 0) {
+            speakLine("No output");
+            return;
+        }
+        const prevIdx = outputIndex <= 0 ? 0 : outputIndex - 1;
+        updateAndSpeakOutputLine(prevIdx);
+    }, [outputIndex, outputHistory, updateAndSpeakOutputLine, speakLine, setOutputIndex]);
 
-  // --- restored navigation functions ---
-  const moveToNextIndent = useCallback(() => {
-    if (outputMode) return nextOutput();
+    // --- restored navigation functions ---
+    const moveToNextIndent = useCallback(() => {
+        const lines = code.split('\n');
+        const indent = getIndentLevel(lines[activeLine]);
+        const nextIdx = findNextLineWithIndent(lines, activeLine, indent);
+        if (nextIdx !== -1) handleActiveLineChange(nextIdx);
+        else speakLine('No next line with same indentation');
+    }, [nextOutput, code, activeLine, handleActiveLineChange, speakLine]);
 
-    const lines = code.split('\n');
-    const indent = getIndentLevel(lines[activeLine]);
-    const nextIdx = findNextLineWithIndent(lines, activeLine, indent);
-    if (nextIdx !== -1) { handleActiveLineChange(nextIdx); readLine(nextIdx); }
-    else setTerminalOutput('No next line with same indentation');
-  }, [outputMode, nextOutput, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+    const moveToPrevIndent = useCallback(() => {
+        const lines = code.split('\n');
+        const indent = getIndentLevel(lines[activeLine]);
+        const prevIdx = findPrevLineWithIndent(lines, activeLine, indent);
+        if (prevIdx !== -1) handleActiveLineChange(prevIdx);
+        else speakLine('No previous line with same indentation');
+    }, [prevOutput, code, activeLine, handleActiveLineChange, speakLine]);
 
-  const moveToPrevIndent = useCallback(() => {
-    if (outputMode) return prevOutput();
+    const moveOutOneLevel = useCallback(() => {
+        const lines = code.split('\n');
+        const currentIndent = getIndentLevel(lines[activeLine]);
+        for (let i = activeLine - 1; i >= 0; i--) {
+            if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) {
+                handleActiveLineChange(i); return;
+            }
+        }
+        speakLine('Already at root level');
+    }, [code, activeLine, handleActiveLineChange, speakLine]);
 
-    const lines = code.split('\n');
-    const indent = getIndentLevel(lines[activeLine]);
-    const prevIdx = findPrevLineWithIndent(lines, activeLine, indent);
-    if (prevIdx !== -1) { handleActiveLineChange(prevIdx); readLine(prevIdx); }
-    else setTerminalOutput('No previous line with same indentation');
-  }, [outputMode, prevOutput, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+    const moveInOneLevel = useCallback(() => {
+        const lines = code.split('\n');
+        const currentIndent = getIndentLevel(lines[activeLine]);
+        for (let i = activeLine + 1; i < lines.length; i++) {
+            if (lines[i].trim() && getIndentLevel(lines[i]) > currentIndent) {
+                handleActiveLineChange(i); return;
+            }
+            if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) break;
+        }
+        speakLine('No child level found');
+    }, [code, activeLine, handleActiveLineChange, speakLine]);
 
-  const moveOutOneLevel = useCallback(() => {
-    if (outputMode) return exitOutputMode();
+    const startSearch = useCallback((mode, matches) => {
+        if (!matches || matches.length === 0) {
+            searchRef.current = { mode, matches: [], idx: -1 };
+            speakLine(`No matches for "${t}".`);
+            return;
+        }
+        searchRef.current = { mode, matches, idx: 0 };
 
-    const lines = code.split('\n');
-    const currentIndent = getIndentLevel(lines[activeLine]);
-    for (let i = activeLine - 1; i >= 0; i--) {
-      if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) {
-        handleActiveLineChange(i); readLine(i); return;
-      }
-    }
-    setTerminalOutput('Already at root level');
-  }, [outputMode, exitOutputMode, code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+        const lineIdx = matches[0];
+        handleActiveLineChange(lineIdx);
+    }, [handleActiveLineChange, code, speakLine]);
 
-  const moveInOneLevel = useCallback(() => {
-    const lines = code.split('\n');
-    const currentIndent = getIndentLevel(lines[activeLine]);
-    for (let i = activeLine + 1; i < lines.length; i++) {
-      if (lines[i].trim() && getIndentLevel(lines[i]) > currentIndent) {
-        handleActiveLineChange(i); readLine(i); return;
-      }
-      if (lines[i].trim() && getIndentLevel(lines[i]) < currentIndent) break;
-    }
-    setTerminalOutput('No child level found');
-  }, [code, activeLine, handleActiveLineChange, readLine, setTerminalOutput]);
+    // --- restored jump functions ---
+    const jumpToAny = useCallback((term) => {
+        const t = (term || '').trim();
+        const lines = code.split('\n');
+        const matches = [];
+        for (let i = 0; i < lines.length; i++) {
+            let j = (i + activeLine + 1) % lines.length
+            if (t && lines[j].includes(t)) matches.push(j);
+        }
+        startSearch('any', matches);
+    }, [code, startSearch]);
 
-  const startSearch = useCallback((mode, term, matches) => {
-    const t = (term || '').trim();
-    if (!t) {
-      setTerminalOutput(
-        mode === 'func' ? t = 'f'
-        : mode === 'com' ? t = 'c'
-        : 'Usage: j <term>'
-      );
-      return;
-    }
+    const gotoMatch = useCallback((newIdx) => {
+        const { matches, term } = searchRef.current;
+        if (!matches || matches.length === 0) {
+            speakLine('No active search');
+            return;
+        }
+        const safeIdx = ((newIdx % matches.length) + matches.length) % matches.length; // wrap
+        searchRef.current.idx = safeIdx;
 
-    if (!matches || matches.length === 0) {
-      searchRef.current = { mode, term: t, matches: [], idx: -1 };
-      setTerminalOutput(`No matches for "${t}".`);
-      return;
-    }
+        const lineIdx = matches[safeIdx];
+        handleActiveLineChange(lineIdx);
+    }, [handleActiveLineChange, code, speakLine]);
 
-    searchRef.current = { mode, term: t, matches, idx: 0 };
+    const jumpNextMatch = useCallback(() => {
+        gotoMatch(searchRef.current.idx + 1);
+    }, [gotoMatch]);
 
-    const lineIdx = matches[0];
-    const lines = code.split('\n');
-    handleActiveLineChange(lineIdx);
+    const jumpPrevMatch = useCallback(() => {
+        gotoMatch(searchRef.current.idx - 1);
+    }, [gotoMatch]);
 
-    if (matches.length > 1) {
-      setTerminalOutput(`Found ${matches.length} matches for "${t}". Jumped to 1/${matches.length}. Use jn/jp to navigate. ` +
-        `Line ${lineIdx + 1}: ${lines[lineIdx]}`);
-    } else {
-      setTerminalOutput(`Found 1 match for "${t}". Line ${lineIdx + 1} : ${lines[lineIdx]}.`);
-    }
-  }, [handleActiveLineChange, code, setTerminalOutput]);
+    // --- restored code editing ---
+    const createLineAfter = useCallback(() => {
+        const lines = code.split('\n');
+        const indent = getIndentLevel(lines[activeLine] || '');
+        lines.splice(activeLine + 1, 0, ' '.repeat(indent));
+        setCode(lines.join('\n'));
+        handleActiveLineChange(activeLine + 1);
+    }, [code, activeLine, setCode, handleActiveLineChange, speakLine]);
 
-  // --- restored jump functions ---
-  const jumpToFunction = useCallback((name) => {
-    const t = (name || '').trim();
-    const lines = code.split('\n');
-    const matches = [];
-    for (let i = 0; i < lines.length; i++) {
-      if (t && lines[i].includes(`def ${t}`)) matches.push(i);
-    }
-    startSearch('func', t, matches);
-  }, [code, startSearch]);
+    const createLineBefore = useCallback(() => {
+        const lines = code.split('\n');
+        const indent = getIndentLevel(lines[activeLine] || '');
+        lines.splice(activeLine, 0, ' '.repeat(indent));
+        setCode(lines.join('\n'));
+    }, [code, activeLine, setCode, speakLine]);
 
-  const jumpToComment = useCallback((name) => {
-    const t = (name || '').trim();
-    const lines = code.split('\n');
-    const matches = [];
-    for (let i = 0; i < lines.length; i++) {
-      if (t && lines[i].includes('#') && lines[i].includes(t)) matches.push(i);
-    }
-    startSearch('com', t, matches);
-  }, [code, startSearch]);
+    // --- restored File I/O ---
+    const saveFile = useCallback((filename = 'code.py') => {
+        const blob = new Blob([code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = filename;
+        link.click(); URL.revokeObjectURL(url);
+        speakLine(`Saved ${filename}`);
+    }, [code, speakLine]);
 
-  const jumpToAny = useCallback((term) => {
-    const t = (term || '').trim();
-    const lines = code.split('\n');
-    const matches = [];
-    for (let i = 0; i < lines.length; i++) {
-      if (t && lines[i].includes(t)) matches.push(i);
-    }
-    startSearch('any', t, matches);
-  }, [code, startSearch]);
+    const loadFile = useCallback(async () => {
+        try {
+            const [handle] = await window.showOpenFilePicker();
+            const file = await handle.getFile();
+            const content = await file.text();
+            setCode(content); handleActiveLineChange(0);
+            speakLine(`Loaded ${file.name}`);
+        } catch (e) { if (e.name !== 'AbortError') speakLine("Load failed"); }
+    }, [setCode, handleActiveLineChange, speakLine]);
 
-  const gotoMatch = useCallback((newIdx) => {
-    const { matches, term } = searchRef.current;
-    if (!matches || matches.length === 0) {
-      setTerminalOutput('No active search. Use j <term>, j f <name>, or j c <term> first.');
-      return;
-    }
-    const safeIdx = ((newIdx % matches.length) + matches.length) % matches.length; // wrap
-    searchRef.current.idx = safeIdx;
+    // --- restored Execution ---
+    const initCodeRunner = useCallback(() => {
+        if (codeRunnerRef.current) return;
+        const worker = new Worker(new URL('../codeExecution/python.worker.ts', import.meta.url));
+        worker.onmessage = (e) => {
+            const { type, data, result, error } = e.data;
 
-    const lineIdx = matches[safeIdx];
-    const lines = code.split('\n');
-    handleActiveLineChange(lineIdx);
-    setTerminalOutput(`Match ${safeIdx + 1}/${matches.length} for "${term}". Line ${lineIdx + 1}: ${lines[lineIdx]}`);
-  }, [handleActiveLineChange, code, setTerminalOutput]);
+            if (type === 'output') {
+                setOutputHistory(prev => {
+                    const next = [...prev, data];
+                    return next;
+                });
+            }
+            else if (type === 'inputRequest') {
+                setOutputHistory(prev => {
+                    const next = [...prev, `input required ${data}`];
+                    //TODO: play sfx
+                    return next;
+                });
+            }
+            else if (type === 'terminated') {
+                setOutputHistory(prev => {
+                    const next = [...prev, 'Terminated'];
+                    //TODO: play sfx
+                    return next;
+                });
+            }
+            else if (type === 'error') {
+                speakLine(`Error: ${error}`);
+            }
+        };
+        codeRunnerRef.current = worker
+    }, [speakLine, setOutputHistory]);
 
-  const jumpNextMatch = useCallback(() => {
-    gotoMatch(searchRef.current.idx + 1);
-  }, [gotoMatch]);
+    const runCode = useCallback(() => {
+        setOutputHistory([]); setOutputIndex(-1);
+        speakLine("Running...");
+        initCodeRunner();
+        codeRunnerRef.current?.postMessage({ type: 'run', data: code });
+    }, [initCodeRunner, code, setOutputHistory, speakLine, setOutputIndex]);
 
-  const jumpPrevMatch = useCallback(() => {
-    gotoMatch(searchRef.current.idx - 1);
-  }, [gotoMatch]);
+    const giveCodeInput = useCallback((input) => {
+        codeRunnerRef.current?.postMessage({ type: 'input', data: input });
+    }, [initCodeRunner, code, setOutputHistory, speakLine, setOutputIndex]);
 
-  // --- restored code editing ---
-  const createLineAfter = useCallback(() => {
-    const lines = code.split('\n');
-    const indent = getIndentLevel(lines[activeLine] || '');
-    lines.splice(activeLine + 1, 0, ' '.repeat(indent));
-    setCode(lines.join('\n'));
-    handleActiveLineChange(activeLine + 1);
-    setTerminalOutput('Created line after');
-  }, [code, activeLine, setCode, handleActiveLineChange, setTerminalOutput]);
+    // missing originals
 
-  const createLineBefore = useCallback(() => {
-    const lines = code.split('\n');
-    const indent = getIndentLevel(lines[activeLine] || '');
-    lines.splice(activeLine, 0, ' '.repeat(indent));
-    setCode(lines.join('\n'));
-    setTerminalOutput('Created line before');
-  }, [code, activeLine, setCode, setTerminalOutput]);
+    const loadDemo = useCallback((id) => {
+        if(!id in demoLibrary) {
+            speakLine('Demo not found')
+            return
+        }
+        const content = demoLibrary[id];
+        setCode(content);
+        handleActiveLineChange(0);
+        speakLine(`Loaded Demo ${id}`);
+    }, [setCode, handleActiveLineChange, speakLine]);
 
-  // --- restored File I/O ---
-  const saveFile = useCallback((filename = 'code.py') => {
-    const blob = new Blob([code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = filename;
-    link.click(); URL.revokeObjectURL(url);
-    setTerminalOutput(`Saved ${filename}`);
-  }, [code, setTerminalOutput]);
-
-  const loadFile = useCallback(async () => {
-    try {
-      const [handle] = await window.showOpenFilePicker();
-      const file = await handle.getFile();
-      const content = await file.text();
-      setCode(content); handleActiveLineChange(0);
-      setTerminalOutput(`Loaded ${file.name}`);
-    } catch (e) { if (e.name !== 'AbortError') setTerminalOutput("Load failed"); }
-  }, [setCode, handleActiveLineChange, setTerminalOutput]);
-
-  // --- restored Execution ---
-  const initCodeRunner = useCallback(() => {
-    if (codeRunnerRef.current) return;
-    const worker = new Worker(new URL('../codeExecution/python.worker.ts', import.meta.url));
-    worker.onmessage = (e) => {
-      const { type, data, result, error } = e.data;
-
-      if (type === 'output') {
-        setOutputHistory(prev => {
-            const next = [...prev, data];
-            return next;
-        });
-      }
-      else if (type === 'terminated'){
-        setOutputHistory(prev => {
-          if (prev.length === 0) {
-            setTerminalOutput(`Finished. ${result ?? ''}`.trim());
-            setOutputMode(false);
-          } else {
-            // Enter output mode with instructions, don't auto-read line 1
-            setOutputMode(true);
-            setOutputIndex(-1);
-            setTerminalOutput(
-              `Viewing output. Use n/p to navigate. Press n for first line. Type out or exit to leave.`
-            );
-          }
-          return prev;
-        });
-      }
-      else if (type === 'error') {
-        setTerminalOutput(`Error: ${error}`);
-        setOutputMode(false);
-      }
+    return {
+        createLineAfter, createLineBefore,
+        moveToNextIndent, moveToPrevIndent,
+        moveOutOneLevel, moveInOneLevel,
+        jumpNextMatch, jumpPrevMatch,
+        jumpToAny,
+        readActiveLine,
+        loadFile, saveFile,
+        initCodeRunner, runCode, giveCodeInput,
+        nextOutput, prevOutput, repeatOutput,
+        loadDemo
     };
-    codeRunnerRef.current = worker;
-  }, [setTerminalOutput, setOutputHistory]);
-
-  const runCode = useCallback(() => {
-    setOutputMode(false);
-    setOutputHistory([]); setOutputIndex(-1);
-    setTerminalOutput("Running...");
-    initCodeRunner();
-    codeRunnerRef.current?.postMessage({ type: 'run', data: code });
-  }, [initCodeRunner, code, setOutputHistory, setTerminalOutput, setOutputIndex, setOutputMode]);
-
-  // missing originals
-  const readActiveBlock = useCallback(() => setTerminalOutput("Reading block... (Implementation depends on parser)"), [setTerminalOutput]);
-  const readActiveFunction = useCallback(() => setTerminalOutput("Reading function..."), [setTerminalOutput]);
-
-  const loadDemo = useCallback((id) => {
-    const content = demoLibrary[id];
-    if (content) {
-      setCode(content);
-      handleActiveLineChange(0);
-      setTerminalOutput(`Loaded Demo ${id}`);
-    } else {
-      setTerminalOutput(`Demo ${id} not found`);
-    }
-  }, [setCode, handleActiveLineChange, setTerminalOutput]);
-
-  return {
-    createLineAfter, createLineBefore,
-    moveToNextIndent, moveToPrevIndent,
-    moveOutOneLevel, moveInOneLevel,
-    jumpToFunction, jumpToComment, jumpToAny,
-    jumpNextMatch, jumpPrevMatch,
-    readActiveLine, readActiveBlock, readActiveFunction,
-    loadFile, saveFile,
-    initCodeRunner, runCode,
-    nextOutput, prevOutput,
-    enterOutputMode, exitOutputMode,
-    loadDemo
-  };
 }

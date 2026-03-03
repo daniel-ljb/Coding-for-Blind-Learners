@@ -47,8 +47,6 @@ function mapNodes(cursor: TreeCursor, code: string): Statement[] {
         const node = cursor.node;
         const type = node.name;
 
-        console.log("Node:", type, "From:", node.from, "To:", node.to, "Text:", getCode(code, node.from, node.to));
-        console.log(node);
         if (SKIP_NODES.includes(type)) continue;
 
         if (type === COMMENT_TYPE) {
@@ -121,7 +119,5 @@ function mapNodes(cursor: TreeCursor, code: string): Statement[] {
 export function createTree(code: string): Statement[] {
     const tree = parser.parse(code);
     const output = mapNodes(tree.cursor(), code);
-    console.log(code)
-    console.log(output)
     return output
 }

@@ -19,7 +19,6 @@ async function initializePyodide(): Promise<any> {
     })
 
     function pyOutput(...args:any[]) {
-        console.log(args.join(" "))
         self.postMessage({type: 'output', data: args.join(" ")})
     }
     function pyInput(promptText="") {
@@ -77,7 +76,6 @@ async def __run_user_code__():
 
 await __run_user_code__()
 `;
-                console.log(asyncCode)
                 const result = await pyodideInstance.runPythonAsync(asyncCode);
                 self.postMessage({
                     type: 'terminated',

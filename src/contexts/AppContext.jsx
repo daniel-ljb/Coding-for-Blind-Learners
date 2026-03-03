@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState, useRef } from 'react';
 import { announce, clearAnnouncer } from '@react-aria/live-announcer';
 import { createTree } from '../utils/pythonParser';
 
@@ -17,22 +17,24 @@ export function AppProvider({ children }) {
   ].join('\n'));
 
   const [activeLine, setActiveLine] = useState(0);
-  const [terminalOutput, setTerminalOutput_] = useState('Press ? for available commands.');
   const [mode, setMode] = useState('edit');
   
-  // New state for navigating program output
   const [outputHistory, setOutputHistory] = useState([]);
   const [outputIndex, setOutputIndex] = useState(-1);
-  const [outputMode, setOutputMode] = useState(false);
+
+  const [argumentCallback, setArgumentCallback] = useState(null);
 
   const syntaxTree = useMemo(() => createTree(code), [code]);
 
   const announcerClarify = (msg) => msg.replace(/\bdef\b/g, 'deaf');
 
-  const setTerminalOutput = (msg) => {
+//   const [codeRunnerRef, setCodeRunnerRef] = useState(null);
+  const codeRunnerRef = useRef(null)
+
+  const speakLine = (msg) => {
+    console.log(`Saying: ${msg}`)
     clearAnnouncer();
     announce(announcerClarify(msg));
-    setTerminalOutput_(msg);
   };
 
   const handleActiveLineChange = (newActiveLine) => {
@@ -42,6 +44,7 @@ export function AppProvider({ children }) {
       setActiveLine(lines.length - 1);
       return;
     }
+    speakLine(lines[newActiveLine])
     setActiveLine(newActiveLine);
   };
 
@@ -50,11 +53,12 @@ export function AppProvider({ children }) {
     syntaxTree,
     activeLine, setActiveLine,
     handleActiveLineChange,
-    terminalOutput, setTerminalOutput,
+    speakLine,
     mode, setMode,
     outputHistory, setOutputHistory,
     outputIndex, setOutputIndex,
-    outputMode, setOutputMode,
+    argumentCallback, setArgumentCallback,
+    codeRunnerRef
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
