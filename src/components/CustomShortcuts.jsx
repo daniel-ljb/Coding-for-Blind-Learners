@@ -129,6 +129,7 @@ function CustomShortcuts() {
                     else repeatOutput();
                 }
                 else if(c && s && k === 'l') {
+                    if(executeMode) return;
                     e.preventDefault();
                     setArgumentCallback(() => (argument) => {
                         setMode(mode)
@@ -139,6 +140,7 @@ function CustomShortcuts() {
                     setMode('argument'); //TODO: Way to store previous mode
                 }
                 else if(c && s && k === 's') {
+                    if(executeMode) return;
                     e.preventDefault();
                     saveFile();
                 }
@@ -152,6 +154,7 @@ function CustomShortcuts() {
                     setMode('argument'); //TODO: Way to store previous mode
                 }
                 else if(c && k === 'j') {
+                    if(executeMode) return;
                     e.preventDefault();
                     if(s) {
                         jumpPrevMatch();
