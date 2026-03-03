@@ -152,8 +152,8 @@ function CustomShortcuts() {
                         });
                         setMode('argument'); //TODO: Way to store previous mode
                     } else {
-                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(" ")
-                        speakLine(`Available commands: control plus ${avilableCommands}`)
+                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
+                        speakLine(`Available commands: control ${avilableCommands}`)
                     }
                 }
                 else if(c && k === 'j') {

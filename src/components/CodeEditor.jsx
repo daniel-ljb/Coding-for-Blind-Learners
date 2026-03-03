@@ -3,10 +3,10 @@ import { useApp } from '../contexts/AppContext';
 import 'prismjs/themes/prism-dark.css'; 
 import './CodeEditor.css'; 
 import { useCodeActions } from '../hooks/useCodeActions';
-import { BLOCK_RULES } from '../utils/blocks';
+import { BLOCK_HINT, BLOCK_RULES } from '../utils/blocks';
 
 function CodeEditor() {
-  const { code, setCode, activeLine, setActiveLine, syntaxTree, mode } = useApp();
+  const { code, setCode, activeLine, setActiveLine, syntaxTree, mode, speakLine } = useApp();
   const [nodes, setNodes] = useState([]);
   const inputRefs = useRef({});
   const lastSyncedCode = useRef(code);
@@ -18,6 +18,9 @@ function CodeEditor() {
       const activeNode = nodes[activeLine];
       if (activeNode) {
         inputRefs.current[activeNode.id]?.focus();
+        if (BLOCK_HINT[activeNode.keyword] && activeNode.content === '') {
+          speakLine(BLOCK_HINT[activeNode.keyword]);
+        }
       }
     }
   }, [mode, activeLine, nodes]);
