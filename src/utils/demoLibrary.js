@@ -147,16 +147,21 @@ export const demoLibrary = {
 
   '9': [
     'def factorial(n):',
-    '    if n < 0: raise ValueError("Non-negative only")',
-    '    if n in (0, 1): return 1',
+    '    if n < 0:',
+    '        raise ValueError("Non-negative only")',
+    '    if n in (0, 1):',
+    '        return 1',
     '    return n * factorial(n - 1)',
     '',
     'def fibonacci(n):',
-    '    if n <= 1: return n',
+    '    if n <= 1:',
+    '        return n',
     '    return fibonacci(n - 1) + fibonacci(n - 2)',
     '',
-    'print("Factorial 5:", factorial(5))',
-    'print("Fibonacci 6:", fibonacci(6))'
+	'n = int(input("Enter number:"))',
+    'print(f"Factorial {n} is {factorial(n)}")',
+    'print(f"Fibonacci {n} is {fibonacci(n)}")'
+
   ].join('\n'),
 
   '10': [

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, useRef } from 'react';
 import { announce, clearAnnouncer } from '@react-aria/live-announcer';
+import { playSfx, verboseString } from '../screenReader/screenReader';
 import { createTree } from '../utils/pythonParser';
 
 const AppContext = createContext(null);
@@ -17,7 +18,7 @@ export function AppProvider({ children }) {
   ].join('\n'));
 
   const [activeLine, setActiveLine] = useState(0);
-  const [mode, setMode] = useState('edit');
+  const [mode, _setMode] = useState('edit');
   
   const [outputHistory, setOutputHistory] = useState([]);
   const [outputIndex, setOutputIndex] = useState(-1);
@@ -31,10 +32,24 @@ export function AppProvider({ children }) {
 //   const [codeRunnerRef, setCodeRunnerRef] = useState(null);
   const codeRunnerRef = useRef(null)
 
-  const speakLine = (msg) => {
-    console.log(`Saying: ${msg}`)
+  const setMode = (mode) => {
+    //Handle sfx:
+    if(mode == 'argument') playSoundEffect('confirm1');
+    else if(mode == 'edit') playSoundEffect('confirm2');
+    else if(mode == 'execute') playSoundEffect('confirm3');
+    _setMode(mode);
+  };
+
+  const speakLine = (msg, verbose=false) => {
     clearAnnouncer();
+    if(verbose) msg = verboseString(msg)
+    console.log(`Saying: ${msg}`)
     announce(announcerClarify(msg));
+  };
+
+  const playSoundEffect = (id) => {
+    console.log(`Playing sfx ${id}`)
+    playSfx(id)
   };
 
   const handleActiveLineChange = (newActiveLine) => {
@@ -53,7 +68,7 @@ export function AppProvider({ children }) {
     syntaxTree,
     activeLine, setActiveLine,
     handleActiveLineChange,
-    speakLine,
+    speakLine, playSoundEffect,
     mode, setMode,
     outputHistory, setOutputHistory,
     outputIndex, setOutputIndex,

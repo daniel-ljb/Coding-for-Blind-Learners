@@ -13,52 +13,39 @@ export function speak(text, priority = "polite"){
     }, 50);
 }
 
-//function to remove brackets, extra info etc from spoken lines
+export function verboseString(line) {
+  const ordered = [
+    { r: /=/g, w: ' equals ' },
+    { r: />/g, w: ' greater than ' },
+    { r: /</g, w: ' less than ' },
+    { r: /\+/g, w: ' plus ' },
+    { r: /-/g, w: ' minus ' },
+    { r: /\*/g, w: ' star ' },
+    { r: /\//g, w: ' slash ' },
+    { r: /%/g, w: ' percent ' },
+    { r: /:/g, w: ' colon ' },
+    { r: /,/g, w: ' comma ' },
+    { r: /\./g, w: ' dot ' },
+    { r: /\(/g, w: ' left paren' },
+    { r: /\)/g, w: ' right paren ' },
+    { r: /\[/g, w: ' left square ' },
+    { r: /\]/g, w: ' right square ' },
+    { r: /\{/g, w: ' left curly ' },
+    { r: /\}/g, w: ' right curly ' },
+    { r: /#/g, w: ' hash ' },
+    { r: /"/g, w: ' double quote ' },
+    { r: /'/g, w: ' single quote ' }
+  ];
 
-export function cleanSpeech(text) {
-    if (!text) return "";
+  let result = line;
 
-    let cleaned = text;
+  for (const { r, w } of ordered) {
+    result = result.replace(r, w);
+  }
 
-    cleaned = cleaned
-        .replace(/\bdef\s+(\w+)\((.*?)\):/g, "function $1, parameters $2")
-        .replace(/\bfor\s+(.*?)\s+in\s+(.*?):/g, "For $1 in $2")
-        .replace(/\bwhile\s+(.*?):/g, "While $1")
-
-        .replace(/\bif\s+(.*?):/g, "If $1")
-        .replace(/\belif\s+(.*?):/g, "Else if $1")
-        .replace(/\belse:/g, "Else")
-        .replace(/\bdef\b/g, "Define")
-
-    cleaned = cleaned
-        .replace(/==/g, " equals ")
-        .replace(/!=/g, " does not equal ")
-        .replace(/<=/g, " is less than or equal to ")
-        .replace(/>=/g, " is greater than or equal to ")
-        .replace(/</g, " is less than ")
-        .replace(/>/g, " is greater than ")
-        .replace(/\band\b/g, " and ")
-        .replace(/\bor\b/g, " or ")
-        .replace(/\bnot\b/g, " not ")
-
-    cleaned = cleaned
-        .replace(/\+/g, " plus ")
-        .replace(/\-/g, " minus ")
-        .replace(/\*\*/g, " to the power of ")
-        .replace(/\*/g, " times ")
-        .replace(/\//g, " divided by ")
-
-    cleaned = cleaned
-        .replace(/_/g, " ")
-        .replace(/[{}()\[\]]/g, " ")
-        .replace(/:/g, ",")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    return cleaned;
+  return result.replace(/\s+/g, ' ').trim();
 }
 
-//speak the line given, may not be needed
 export function speakLine(lineContent){
     if (!lineContent||lineContent.trim() === ""){
         speak("Empty Line");
@@ -116,17 +103,24 @@ export function playTone(freq, duration = 0.5) {
 }
 
 const SFX = {
-  'confirm1': 'Coding-for-Blind-Learners/sounds/confirm1.mp3',
-  'confirm2': 'Coding-for-Blind-Learners/sounds/confirm2.mp3',
-  'confirm3': 'Coding-for-Blind-Learners/sounds/confirm3.mp3',
-  'error1':   'Coding-for-Blind-Learners/sounds/error1.mp3'
+  'confirm1': '/Coding-for-Blind-Learners/sounds/confirm1.mp3',
+  'confirm2': '/Coding-for-Blind-Learners/sounds/confirm2.mp3',
+  'confirm3': '/Coding-for-Blind-Learners/sounds/confirm3.mp3',
+  'error1':   '/Coding-for-Blind-Learners/sounds/error1.mp3'
 };
 
 const audioCache = new Map();
+const lastPlayTime = new Map(); // store last play timestamp
 
 export function playSfx(name, { volume = 1, rate = 1, overlap = true } = {}) {
     const src = SFX[name];
     if (!src) return;
+
+    const now = performance.now(); // high-resolution timestamp
+    const last = lastPlayTime.get(name) || 0;
+
+    if (now - last < 0.2) return; // skip if played in the last 0.2ms
+    lastPlayTime.set(name, now);
 
     let audio;
     if (overlap) {
