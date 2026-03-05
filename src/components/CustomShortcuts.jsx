@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useCodeActions } from '../hooks/useCodeActions';
-import { speakLine } from '../screenReader/screenReader';
+//import { speakLine } from '../screenReader/screenReader';
 
 const EDIT_COMMAND_HELP = {
     "u": "Previous line with same indent",
@@ -18,9 +18,10 @@ const EDIT_COMMAND_HELP = {
     "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and opens edit mode.",
+    "q": "Announces current mode",
     "m": "Switches between edit and execute mode",
 };
-const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "m", ]
+const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "q","m", ]
 const EXECUTE_COMMAND_HELP = {
     "u": "Previous output line",
     "d": "Next output line",
@@ -32,13 +33,14 @@ const EXECUTE_COMMAND_HELP = {
     "j": "Jump in output. Opens argument mode. Type what you want to jump to in the output and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and stays in edit mode.",
+    "q": "Announces current mode",
     "m": "Switches between edit and execute mode",
     "g": "Jumps to the line that caused the current error. Opens edit mode.",
 };
-const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "m", "g"];
+const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "q", "m", "g"];
 
 function CustomShortcuts() {
-    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, setPreviousMode, previousMode, showAndSpeak } = useApp();
+    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, setPreviousMode, previousMode, showAndSpeak, speakLine } = useApp();
     const {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
@@ -54,6 +56,7 @@ function CustomShortcuts() {
 
     useEffect(() => {
         const handleKeyDown = (e) => {
+            console.log('keydown', e.key, e.ctrlKey, e.shiftKey, e.altKey);
             const k = e.key.toLowerCase()
             const c = e.ctrlKey
             const s = e.shiftKey
@@ -112,6 +115,10 @@ function CustomShortcuts() {
                     if(s && editMode) createLineAfter();
                     else if (editMode) moveToNextIndent();
                     else nextOutput();
+                }
+                else if (c && k === 'q'){
+                    e.preventDefault();
+                    speakLine(`${mode} mode`);
                 }
                 else if(c && k === 'o') {
                     e.preventDefault();
@@ -179,7 +186,6 @@ function CustomShortcuts() {
                         return;
                     }
                     setArgumentCallback(() => (argument) => {
-                        setMode(mode)
                         if(argument == null) return;
 
                         if(argument !== '') startSearch(argument);
@@ -211,6 +217,10 @@ function CustomShortcuts() {
                     setArgumentCallback(null);
                     setMode(previousMode ?? 'edit');
                 } //Return null
+                else if (c && k === `q`){
+                    e.preventDefault();
+                    speakLine(`Argument mode`);
+                }
             }
         };
 
