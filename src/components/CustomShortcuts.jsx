@@ -12,13 +12,13 @@ const EDIT_COMMAND_HELP = {
     "i": "IN one indent level",
     "r": "Read current line",
     "R": "Verbose read current line",
-    "l": "Load file. Opens argument mode. Numbers 0 to 10 give demos, everything else opens folder",
+    "l": "Load file. Opens argument mode. Numbers 0 to 11 give demos, everything else opens folder",
     "s": "Save as file",
     "/": "Help. Opens argument mode",
     "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and opens edit mode.",
-    "q": "Announces current mode",
+    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
 };
 const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "q","m", ]
@@ -33,7 +33,7 @@ const EXECUTE_COMMAND_HELP = {
     "j": "Jump in output. Opens argument mode. Type what you want to jump to in the output and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and stays in edit mode.",
-    "q": "Announces current mode",
+    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
     "g": "Jumps to the line that caused the current error. Opens edit mode.",
 };
@@ -142,7 +142,7 @@ function CustomShortcuts() {
                     speakLine("Enter demo number")
                     setArgumentCallback(() => (argument) => {
                         if(argument == null) return;
-                        if(argument in ['0','1','2','3','4','5','6','7','8','9','10']) loadDemo(argument); //Note that 0 is a blank file
+                        if(argument in ['0','1','2','3','4','5','6','7','8','9','10', '11']) loadDemo(argument); //Note that 0 is a blank file
                         else loadFile();
                     });
                     setPreviousMode(mode);
