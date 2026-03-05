@@ -8,16 +8,16 @@ export function useCodeActions() {
     const {
         code, setCode, activeLine, handleActiveLineChange, speakLine, showAndSpeak, setMode,
         outputHistory, setOutputHistory, outputIndex, setOutputIndex,
-        codeRunnerRef
+        codeRunnerRef, playSoundEffect
     } = useApp();
 
     const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
     const outputSearchRef = useRef({ term: '', matches: [], idx: -1 });
     const runErroredRef = useRef(false);
 
-    const readActiveLine = useCallback(() => {
+    const readActiveLine = useCallback((verbose=false) => {
         const lines = code.split('\n');
-        speakLine(lines[activeLine]);
+        speakLine(lines[activeLine], verbose);
     }, [code, speakLine]);
 
     const updateAndSpeakOutputLine = useCallback((index) => {
@@ -111,8 +111,8 @@ export function useCodeActions() {
             let j = (i + activeLine + 1) % lines.length
             if (t && lines[j].includes(t)) matches.push(j);
         }
-        startSearch('any', matches);
-    }, [code, startSearch]);
+        searchRef.current = { mode: 'any', matches, idx: 0 };
+    }, [code]);
 
     const gotoMatch = useCallback((newIdx) => {
         const { matches, term } = searchRef.current;
@@ -289,6 +289,7 @@ export function useCodeActions() {
                 )
 
             if (type === 'output') {
+                playSoundEffect("confirm3");
                 if (likelyError(data)) runErroredRef.current = true;
                 setOutputHistory(prev => {
                     const next = [...prev, data];
@@ -298,6 +299,7 @@ export function useCodeActions() {
                 showAndSpeak(data);
             }
             else if (type === 'inputRequest') {
+                playSoundEffect("confirm3");
                 const msg = `Input required: ${data}`;
                 setOutputHistory(prev => {
                     const next = [...prev, msg];
@@ -335,7 +337,7 @@ export function useCodeActions() {
             }
         };
         codeRunnerRef.current = worker
-    }, [speakLine, showAndSpeak, setOutputIndex, setOutputHistory]);
+    }, [speakLine, showAndSpeak, setOutputIndex, setOutputHistory, playSoundEffect]);
 
     const runCode = useCallback(() => {
         runErroredRef.current = false;
@@ -367,8 +369,7 @@ export function useCodeActions() {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
-        jumpNextMatch, jumpPrevMatch,
-        jumpToAny,
+        jumpNextMatch, jumpPrevMatch, startSearch,
         jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
         jumpToErrorLine,
         readActiveLine,

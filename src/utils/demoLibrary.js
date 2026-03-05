@@ -17,13 +17,16 @@ export const demoLibrary = {
 
   '2': [
     'def sort_int_list(lst):',
-    '    for i in range(len(lst) - 1):',
-    '        if lst[i] > lst[i+1]:',
-    '            temp = lst[i]',
-    '            lst[i] = lst[i+1]',
-    '            lst[i+1] = temp',
-    '',
-    'sort_int_list([5, 3, 9, 1, 4, 0, 15, 4])'
+    '    n = len(lst)',
+    '    for i in range(n - 1):',
+    '        for j in range(n - 1 - i):',
+    '            if lst[j] > lst[j+1]:',
+    '                temp = lst[j]',
+    '                lst[j] = lst[j+1]',
+    '                lst[j+1] = temp',
+    'lst = [5, 3, 9, 1, 4, 0, 15, 4]',
+    'sort_int_list(lst)',
+    'print("Sorted list: " + str(lst))'
   ].join('\n'),
 
   '3': [
@@ -147,16 +150,21 @@ export const demoLibrary = {
 
   '9': [
     'def factorial(n):',
-    '    if n < 0: raise ValueError("Non-negative only")',
-    '    if n in (0, 1): return 1',
+    '    if n < 0:',
+    '        raise ValueError("Non-negative only")',
+    '    if n in (0, 1):',
+    '        return 1',
     '    return n * factorial(n - 1)',
     '',
     'def fibonacci(n):',
-    '    if n <= 1: return n',
+    '    if n <= 1:',
+    '        return n',
     '    return fibonacci(n - 1) + fibonacci(n - 2)',
     '',
-    'print("Factorial 5:", factorial(5))',
-    'print("Fibonacci 6:", fibonacci(6))'
+	'n = int(input("Enter number:"))',
+    'print(f"Factorial {n} is {factorial(n)}")',
+    'print(f"Fibonacci {n} is {fibonacci(n)}")'
+
   ].join('\n'),
 
   '10': [

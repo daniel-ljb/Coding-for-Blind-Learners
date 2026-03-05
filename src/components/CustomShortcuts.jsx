@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useCodeActions } from '../hooks/useCodeActions';
+import { speakLine } from '../screenReader/screenReader';
 
 const EDIT_COMMAND_HELP = {
     "u": "Previous line with same indent",
@@ -42,7 +43,7 @@ function CustomShortcuts() {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
-        jumpToAny, jumpNextMatch, jumpPrevMatch,
+        startSearch, jumpNextMatch, jumpPrevMatch,
         jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
         jumpToErrorLine,
         readActiveLine, readActiveBlock, readActiveFunction,
@@ -124,13 +125,14 @@ function CustomShortcuts() {
                 }
                 else if(c && k === 'r') {
                     e.preventDefault();
-                    if(s && editMode) readActiveLine(); //TODO: Make this verbose
-                    else if (editMode) readActiveLine();
+                    if(s && editMode) readActiveLine(true); //Verbose
+                    else if (editMode) readActiveLine(false);
                     else repeatOutput();
                 }
                 else if(c && k === 'l') {
-                    if(executeMode) return;
                     e.preventDefault();
+                    if(executeMode) return;
+                    speakLine("Enter demo number")
                     setArgumentCallback(() => (argument) => {
                         if(argument == null) return;
                         if(argument in ['0','1','2','3','4','5','6','7','8','9','10']) loadDemo(argument); //Note that 0 is a blank file
@@ -140,13 +142,14 @@ function CustomShortcuts() {
                     setMode('argument'); //TODO: Way to store previous mode
                 }
                 else if(c && s && k === 's') {
-                    if(executeMode) return;
                     e.preventDefault();
+                    if(executeMode) return;
                     saveFile();
                 }
-                else if(c && k === '/') {
+                else if(c && (k === '/' || k === '?')) {
+                    e.preventDefault();
                     if(s) {
-                        e.preventDefault();
+                        speakLine("Enter key for help")
                         setArgumentCallback(() => (argument) => {
                             if (argument == null) return;
                             const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument]
@@ -156,8 +159,8 @@ function CustomShortcuts() {
                         setPreviousMode(mode);
                         setMode('argument'); //TODO: Way to store previous mode
                     } else {
-                        const availableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
-                        showAndSpeak(`Available commands: control ${availableCommands}`)
+                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
+                        showAndSpeak(`Available commands: control ${avilableCommands}`)
                     }
                 }
                 else if(c && k === 'j') {
@@ -175,18 +178,16 @@ function CustomShortcuts() {
                         }
                         return;
                     }
+                    setArgumentCallback(() => (argument) => {
+                        setMode(mode)
+                        if(argument == null) return;
 
-                    if(s) {
-                        jumpPrevMatch();
-                    } else {
-                        setArgumentCallback(() => (argument) => {
-                            if(argument == null) return;
-                            if(argument == '') jumpNextMatch();
-                            else jumpToAny(argument);
-                        });
-                        setPreviousMode(mode);
-                        setMode('argument'); //TODO: Way to store previous mode
-                    }
+                        if(argument !== '') startSearch(argument);
+                        if(s) jumpPrevMatch();
+                        else jumpNextMatch();
+                    });
+                    setPreviousMode(mode);
+                    setMode('argument');
                 }
                 else if(c && k === 'e') {
                     e.preventDefault();
@@ -202,7 +203,7 @@ function CustomShortcuts() {
                     e.preventDefault();
                     jumpToErrorLine()
                 }
-            } //TODO: Stop propagation?
+            }
             else if(argMode) {
                 if(e.key == 'Escape') {
                     e.preventDefault();
