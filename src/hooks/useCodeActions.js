@@ -182,48 +182,29 @@ export function useCodeActions() {
     }, [gotoOutputMatch]);
 
     const jumpToErrorLine = useCallback(() => {
-        let errorMsg = null;
-        for (let i = outputHistory.length - 1; i >= 0; i--) {
-            const line = outputHistory[i] || '';
-            if (
-                line.includes('Traceback') ||
-                line.includes('SyntaxError') ||
-                line.includes('IndentationError') ||
-                line.includes('NameError') ||
-                line.includes('TypeError') ||
-                line.includes('ValueError') ||
-                line.includes('ZeroDivisionError') ||
-                line.includes('AttributeError') ||
-                line.includes('KeyError') ||
-                line.includes('IndexError') ||
-                line.includes('Exception') ||
-                line.includes('Error') ||
-                line.includes('ImportError')
-            ){
-                errorMsg = line;
-                break;
-            }
+        if (outputHistory.length === 0 || outputIndex < 0) {
+            showAndSpeak('No error line detected');
+            return;
         }
 
-        if (!errorMsg) { showAndSpeak('No error to jump to.'); return; }
-
-        const match = errorMsg.match(/\bline\s+(\d+)\b/i);
-        if (!match) { showAndSpeak('Could not find an error line number.'); return; }
-
-        const oneBasedLine = parseInt(match[1], 10);
-        if (Number.isNaN(oneBasedLine)) { showAndSpeak('Could not parse the error line number.'); return; }
-
-        let zeroBasedLine = oneBasedLine - 1;
-        if(
-            errorMsg.includes('was never closed') ||
-            errorMsg.includes('EOF') ||
-            errorMsg.includes('unterminated')
-        ){
-            zeroBasedLine = Math.max(0, zeroBasedLine - 1);
+        // Error lines are of form (lineNum) (code[lineNum])
+        const currentLine = outputHistory[outputIndex] || '';
+        const match = currentLine.match(/(\d+) (.*)/i);
+        if (!match) {
+            showAndSpeak('No error line detected');
+            return;
         }
+
+        const lineNum = parseInt(match[1], 10);
+        const codeLines = code.split('\n');
+        if (Number.isNaN(lineNum) || lineNum < 1 ||lineNum > codeLines.length || match[2].trim() !== codeLines[lineNum - 1].trim()) {
+            showAndSpeak('No error line detected');
+            return;
+        }
+
         setMode('edit');
-        handleActiveLineChange(zeroBasedLine);
-    }, [outputHistory, handleActiveLineChange, setMode, showAndSpeak]);
+        handleActiveLineChange(lineNum - 1);
+    }, [outputHistory, outputIndex, handleActiveLineChange, setMode, showAndSpeak]);
 
     const createLineAfter = useCallback(() => {
         const lines = code.split('\n');
