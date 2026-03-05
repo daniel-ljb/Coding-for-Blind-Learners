@@ -12,8 +12,8 @@ def print_error_for_screen_reader(exc: BaseException) -> str:
         msg = exc.msg or exc.args[0]
         text = (exc.text or "").strip()
         print(f"SyntaxError: {msg}")
-        print(f"{exc.lineno} {text}")
-
+        print(f"{exc.lineno-1} {text}")
+        return
 
     tb = traceback.TracebackException.from_exception(exc)
     print(f"{type(exc).__name__}: {exc}")
@@ -23,7 +23,7 @@ def print_error_for_screen_reader(exc: BaseException) -> str:
             continue
 
         code = (frame.line or source.split("\\n")[frame.lineno-1] or "").strip()
-        print(f"{frame.lineno} {code}")
+        print(f"{frame.lineno-1} {code}")
 
 async def __run_user_code__():
     try:
