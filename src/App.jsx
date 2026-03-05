@@ -3,7 +3,6 @@ import CodeEditor from './components/CodeEditor.jsx';
 import CustomShortcuts from './components/CustomShortcuts.jsx';
 import { AppProvider } from './contexts/AppContext.jsx';
 import Switch from '@mui/material/Switch';
-import ArgumentTerminal from './components/ArgumentTerminal.jsx';
 import ExecuteTerminal from './components/ExecuteTerminal.jsx';
 
 function AppContent() {
@@ -32,9 +31,6 @@ function AppContent() {
         <div className={"h-10 bg-gray-700 border-b border-gray-600 p-2" + blindModeStyles}>
           <span className="text-gray-300">Terminal</span>
         </div>
-        <section className="flex bg-gray-900 overflow-hidden flex-col">
-          <ArgumentTerminal />
-        </section>
         <section className="flex bg-gray-900 overflow-hidden flex-col">
           <ExecuteTerminal />
         </section>
