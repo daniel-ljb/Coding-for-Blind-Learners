@@ -41,7 +41,7 @@ self.onmessage = async (event: MessageEvent) => {
                 const pyodideInstance = await initializePyodide();
 
                 const userCode = data.replace(/\binput\s*\(/g, "await input(");
-                const wrappedCode = `async def __user_main__():\n${userCode.split("\n").map(l => "    " + l).join("\n")}`;
+                const wrappedCode = `async def __user_main__():\n${userCode.split("\n").map((l: string) => "    " + l).join("\n")}`;
 
                 const asyncCode = `
 import traceback
