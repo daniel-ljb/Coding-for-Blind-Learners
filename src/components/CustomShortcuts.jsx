@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useCodeActions } from '../hooks/useCodeActions';
+//import { speakLine } from '../screenReader/screenReader';
 
 const EDIT_COMMAND_HELP = {
     "u": "Previous line with same indent",
@@ -11,15 +12,16 @@ const EDIT_COMMAND_HELP = {
     "i": "IN one indent level",
     "r": "Read current line",
     "R": "Verbose read current line",
-    "l": "Load file. Opens argument mode. Numbers 0 to 10 give demos, everything else opens folder",
+    "l": "Load file. Opens argument mode. Numbers 0 to 11 give demos, everything else opens folder",
     "s": "Save as file",
     "/": "Help. Opens argument mode",
-    "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Capital J searches in opposite direction.",
+    "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and opens edit mode.",
+    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
 };
-const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "J", "e", "m", ]
+const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "q","m", ]
 const EXECUTE_COMMAND_HELP = {
     "u": "Previous output line",
     "d": "Next output line",
@@ -28,19 +30,24 @@ const EXECUTE_COMMAND_HELP = {
     "r": "Read current output line",
     "R": "Verbose read current output line",
     "/": "Help. Opens argument mode",
+    "j": "Jump in output. Opens argument mode. Type what you want to jump to in the output and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
+    "J": "Repeates search backwards",
     "e": "Executes program and stays in edit mode.",
+    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
     "g": "Jumps to the line that caused the current error. Opens edit mode.",
 };
-const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "e", "m", "g"];
+const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "q", "m", "g"];
 
 function CustomShortcuts() {
-    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, speakLine } = useApp();
+    const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, setPreviousMode, previousMode, showAndSpeak, speakLine } = useApp();
     const {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
         startSearch, jumpNextMatch, jumpPrevMatch,
+        jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
+        jumpToErrorLine,
         readActiveLine, readActiveBlock, readActiveFunction,
         loadFile, saveFile, runCode,
         nextOutput, prevOutput, repeatOutput,
@@ -49,6 +56,7 @@ function CustomShortcuts() {
 
     useEffect(() => {
         const handleKeyDown = (e) => {
+            console.log('keydown', e.key, e.ctrlKey, e.shiftKey, e.altKey);
             const k = e.key.toLowerCase()
             const c = e.ctrlKey
             const s = e.shiftKey
@@ -108,6 +116,10 @@ function CustomShortcuts() {
                     else if (editMode) moveToNextIndent();
                     else nextOutput();
                 }
+                else if (c && k === 'q'){
+                    e.preventDefault();
+                    speakLine(`${mode} mode`);
+                }
                 else if(c && k === 'o') {
                     e.preventDefault();
                     if(editMode) moveOutOneLevel();
@@ -129,11 +141,11 @@ function CustomShortcuts() {
                     if(executeMode) return;
                     speakLine("Enter demo number")
                     setArgumentCallback(() => (argument) => {
-                        setMode(mode)
                         if(argument == null) return;
-                        if(argument in ['0','1','2','3','4','5','6','7','8','9','10']) loadDemo(argument); //Note that 0 is a blank file
+                        if(argument in ['0','1','2','3','4','5','6','7','8','9','10', '11']) loadDemo(argument); //Note that 0 is a blank file
                         else loadFile();
                     });
+                    setPreviousMode(mode);
                     setMode('argument'); //TODO: Way to store previous mode
                 }
                 else if(c && s && k === 's') {
@@ -141,37 +153,47 @@ function CustomShortcuts() {
                     if(executeMode) return;
                     saveFile();
                 }
-                else if(c && k === '?') {
+                else if(c && (k === '/' || k === '?')) {
                     e.preventDefault();
-                    speakLine("Enter key for help")
-                    setArgumentCallback(() => (argument) => {
-                        setMode(mode)
-                        if (argument == null) return;
-                        const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument]
-                        if (help == null) speakLine("Invalid command.")
-                        else speakLine(help);
-                    });
-                    setMode('argument'); //TODO: Way to store previous mode
-                }
-                else if(c && k === '/') {
-                    e.preventDefault();
-                    const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
-                    speakLine(`Available commands: control ${avilableCommands}`)
+                    if(s) {
+                        speakLine("Enter key for help")
+                        setArgumentCallback(() => (argument) => {
+                            if (argument == null) return;
+                            const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument]
+                            if (help == null) showAndSpeak("Invalid command.")
+                            else showAndSpeak(help);
+                        });
+                        setPreviousMode(mode);
+                        setMode('argument'); //TODO: Way to store previous mode
+                    } else {
+                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
+                        showAndSpeak(`Available commands: control ${avilableCommands}`)
+                    }
                 }
                 else if(c && k === 'j') {
                     e.preventDefault();
-                    if(executeMode) return;
-
-                    speakLine("Enter search term")
+                    if(executeMode){
+                        if(s) jumpPrevOutputMatch();
+                        else{
+                            setArgumentCallback(() => (argument) => {
+                                if (argument == null) return;
+                                if (argument === '') jumpNextOutputMatch();
+                                else jumpToOutput(argument);
+                            });
+                            setPreviousMode(mode);
+                            setMode('argument');
+                        }
+                        return;
+                    }
                     setArgumentCallback(() => (argument) => {
-                        setMode(mode)
                         if(argument == null) return;
 
                         if(argument !== '') startSearch(argument);
                         if(s) jumpPrevMatch();
                         else jumpNextMatch();
                     });
-                    setMode('argument')
+                    setPreviousMode(mode);
+                    setMode('argument');
                 }
                 else if(c && k === 'e') {
                     e.preventDefault();
@@ -182,14 +204,23 @@ function CustomShortcuts() {
                     e.preventDefault();
                     setMode(editMode ? 'execute' : 'edit');
                 }
-                // else if(c && k === 'g') {
-                //     e.preventDefault();
-                //     if(editMode) return;
-                //     jumpToErrorLine()
-                // }
+                else if(c && k === 'g') {
+                    if(editMode) return;
+                    e.preventDefault();
+                    jumpToErrorLine()
+                }
             }
             else if(argMode) {
-                if(e.key == 'Escape') { e.preventDefault(); argumentCallback(null); } //Return null
+                if(e.key == 'Escape') {
+                    e.preventDefault();
+                    if (argumentCallback)argumentCallback(null);
+                    setArgumentCallback(null);
+                    setMode(previousMode ?? 'edit');
+                } //Return null
+                else if (c && k === `q`){
+                    e.preventDefault();
+                    speakLine(`Argument mode`);
+                }
             }
         };
 

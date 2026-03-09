@@ -166,5 +166,16 @@ export const demoLibrary = {
     '        print(row)',
     'g = create_grid(3, 4)',
     'print_grid(g)'
+  ].join('\n'),
+
+  '11': [
+    'def fib(n):',
+    '    if n <= 1:',
+    '        return n',
+    '    return fib(n-1) + fib(n-2)',
+    '',
+    'print("Starting Fibonacci")',
+    'print(fib(10)',
+    'print("Done")'
   ].join('\n')
 };

@@ -19,6 +19,9 @@ export function AppProvider({ children }) {
 
   const [activeLine, setActiveLine] = useState(0);
   const [mode, _setMode] = useState('edit');
+  const [previousMode, setPreviousMode] = useState('edit');
+
+  const [terminalOutput, setTerminalOutput_] = useState('');
   
   const [outputHistory, setOutputHistory] = useState([]);
   const [outputIndex, setOutputIndex] = useState(-1);
@@ -52,6 +55,15 @@ export function AppProvider({ children }) {
     playSfx(id)
   };
 
+  const setTerminalOutput = (msg) => {
+    setTerminalOutput_(msg);
+  };
+
+  const showAndSpeak = (msg) => {
+    setTerminalOutput(msg);
+    speakLine(msg);
+  };
+
   const handleActiveLineChange = (newActiveLine) => {
     const lines = code.split('\n');
     if (newActiveLine < 0) return;
@@ -59,7 +71,7 @@ export function AppProvider({ children }) {
       setActiveLine(lines.length - 1);
       return;
     }
-    speakLine(lines[newActiveLine])
+    //speakLine(lines[newActiveLine])
     setActiveLine(newActiveLine);
   };
 
@@ -69,7 +81,10 @@ export function AppProvider({ children }) {
     activeLine, setActiveLine,
     handleActiveLineChange,
     speakLine, playSoundEffect,
+    showAndSpeak,
     mode, setMode,
+    previousMode, setPreviousMode,
+    terminalOutput, setTerminalOutput,
     outputHistory, setOutputHistory,
     outputIndex, setOutputIndex,
     argumentCallback, setArgumentCallback,

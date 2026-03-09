@@ -6,12 +6,14 @@ import { getIndentLevel, findNextLineWithIndent, findPrevLineWithIndent } from '
 
 export function useCodeActions() {
     const {
-        code, setCode, activeLine, handleActiveLineChange, speakLine,
+        code, setCode, activeLine, handleActiveLineChange, speakLine, showAndSpeak, setMode,
         outputHistory, setOutputHistory, outputIndex, setOutputIndex,
         codeRunnerRef, playSoundEffect
     } = useApp();
 
     const searchRef = useRef({ mode: 'any', term: '', matches: [], idx: -1 });
+    const outputSearchRef = useRef({ term: '', matches: [], idx: -1 });
+    const runErroredRef = useRef(false);
 
     const readActiveLine = useCallback((verbose=false) => {
         const lines = code.split('\n');
@@ -21,12 +23,12 @@ export function useCodeActions() {
     const updateAndSpeakOutputLine = useCallback((index) => {
         const safeIdx = Math.max(0, Math.min(index, outputHistory.length - 1));
         setOutputIndex(safeIdx)
-        speakLine(outputHistory[safeIdx])
-    }, [speakLine, outputHistory, setOutputIndex])
+        showAndSpeak(outputHistory[safeIdx])
+    }, [showAndSpeak, outputHistory, setOutputIndex])
 
     const repeatOutput = useCallback(() => {
         if (outputHistory.length === 0) {
-            speakLine("No output");
+            showAndSpeak("No output");
             return;
         }
         updateAndSpeakOutputLine(outputIndex);
@@ -34,7 +36,7 @@ export function useCodeActions() {
 
     const nextOutput = useCallback(() => {
         if (outputHistory.length === 0) {
-            speakLine("No output");
+            showAndSpeak("No output");
             return;
         }
         const nextIdx = outputIndex < 0 ? 0 : outputIndex + 1;
@@ -43,12 +45,12 @@ export function useCodeActions() {
 
     const prevOutput = useCallback(() => {
         if (outputHistory.length === 0) {
-            speakLine("No output");
+            showAndSpeak("No output");
             return;
         }
         const prevIdx = outputIndex <= 0 ? 0 : outputIndex - 1;
         updateAndSpeakOutputLine(prevIdx);
-    }, [outputIndex, outputHistory, updateAndSpeakOutputLine, speakLine, setOutputIndex]);
+    }, [outputIndex, outputHistory, updateAndSpeakOutputLine, showAndSpeak, setOutputIndex]);
 
     const moveToNextIndent = useCallback(() => {
         const lines = code.split('\n');
@@ -89,7 +91,19 @@ export function useCodeActions() {
         speakLine('No child level found');
     }, [code, activeLine, handleActiveLineChange, speakLine]);
 
-    const startSearch = useCallback((term) => {
+    const startSearch = useCallback((mode, matches) => {
+        if (!matches || matches.length === 0) {
+            searchRef.current = { mode, matches: [], idx: -1 };
+            speakLine(`No matches.`);
+            return;
+        }
+        searchRef.current = { mode, matches, idx: 0 };
+
+        const lineIdx = matches[0];
+        handleActiveLineChange(lineIdx);
+    }, [handleActiveLineChange, code, speakLine]);
+
+    const jumpToAny = useCallback((term) => {
         const t = (term || '').trim();
         const lines = code.split('\n');
         const matches = [];
@@ -120,6 +134,77 @@ export function useCodeActions() {
     const jumpPrevMatch = useCallback(() => {
         gotoMatch(searchRef.current.idx - 1);
     }, [gotoMatch]);
+
+    const gotoOutputMatch = useCallback((newIdx) => {
+        const { matches } = outputSearchRef.current;
+        if (!matches || matches.length === 0) {
+            showAndSpeak('No active output search');
+            return;
+        }
+
+        const safeIdx = ((newIdx % matches.length) + matches.length) % matches.length;
+        outputSearchRef.current.idx = safeIdx;
+        const outIdx = matches[safeIdx];
+        updateAndSpeakOutputLine(outIdx);
+    }, [updateAndSpeakOutputLine, showAndSpeak]);
+
+    const jumpToOutput = useCallback((term) => {
+        const t = (term || '').trim();
+
+        if (outputHistory.length === 0) { showAndSpeak('No output'); return; }
+
+        if (!t) return gotoOutputMatch(outputSearchRef.current.idx + 1);
+        
+        const matches = [];
+        const start = outputIndex < 0 ? 0 : outputIndex;
+
+        for (let i = 0; i < outputHistory.length; i++) {
+            const j = (start + 1 + i) % outputHistory.length;
+            if ((outputHistory[j] || '').includes(t)) matches.push(j);
+        }
+
+        if (matches.length === 0) {
+            outputSearchRef.current = { term: t, matches: [], idx: -1 };
+            showAndSpeak(`No output matches for "${t}".`);
+            return;
+        }
+
+        outputSearchRef.current = { term: t, matches, idx: 0 };
+        updateAndSpeakOutputLine(matches[0]);
+    }, [outputHistory, outputIndex, updateAndSpeakOutputLine, gotoOutputMatch, showAndSpeak]);
+
+    const jumpNextOutputMatch = useCallback(() => {
+        return gotoOutputMatch(outputSearchRef.current.idx + 1);
+    }, [gotoOutputMatch]);
+
+    const jumpPrevOutputMatch = useCallback(() => {
+        return gotoOutputMatch(outputSearchRef.current.idx - 1);
+    }, [gotoOutputMatch]);
+
+    const jumpToErrorLine = useCallback(() => {
+        if (outputHistory.length === 0 || outputIndex < 0) {
+            showAndSpeak('No error line detected');
+            return;
+        }
+
+        // Error lines are of form (lineNum) (code[lineNum])
+        const currentLine = outputHistory[outputIndex] || '';
+        const match = currentLine.match(/(\d+) (.*)/i);
+        if (!match) {
+            showAndSpeak('No error line detected');
+            return;
+        }
+
+        const lineNum = parseInt(match[1], 10);
+        const codeLines = code.split('\n');
+        if (Number.isNaN(lineNum) || lineNum < 1 ||lineNum > codeLines.length || match[2].trim() !== codeLines[lineNum - 1].trim()) {
+            showAndSpeak('No error line detected');
+            return;
+        }
+
+        setMode('edit');
+        handleActiveLineChange(lineNum - 1);
+    }, [outputHistory, outputIndex, handleActiveLineChange, setMode, showAndSpeak]);
 
     const createLineAfter = useCallback(() => {
         const lines = code.split('\n');
@@ -167,45 +252,86 @@ export function useCodeActions() {
         worker.onmessage = (e) => {
             const { type, data, result, error } = e.data;
 
+            const likelyError = (line) =>
+                typeof line === 'string' && (
+                    line.includes('Traceback') ||
+                    line.includes('SyntaxError') ||
+                    line.includes('IndentationError') ||
+                    line.includes('NameError') ||
+                    line.includes('TypeError') ||
+                    line.includes('ValueError') ||
+                    line.includes('ZeroDivisionError') ||
+                    line.includes('AttributeError') ||
+                    line.includes('KeyError') ||
+                    line.includes('IndexError') ||
+                    line.includes('Exception') ||
+                    line.includes('Error') ||
+                    line.includes('ImportError')
+                )
+
             if (type === 'output') {
                 playSoundEffect("confirm3");
+                if (likelyError(data)) runErroredRef.current = true;
                 setOutputHistory(prev => {
                     const next = [...prev, data];
+                    setOutputIndex(next.length - 1);
                     return next;
                 });
+                showAndSpeak(data);
             }
             else if (type === 'inputRequest') {
                 playSoundEffect("confirm3");
+                const msg = `Input required: ${data}`;
                 setOutputHistory(prev => {
-                    const next = [...prev, `input required ${data}`];
+                    const next = [...prev, msg];
                     //TODO: play sfx
+                    setOutputIndex(next.length - 1);
                     return next;
                 });
+                showAndSpeak(msg);
+            }
+            
+            else if (type === 'error') {
+                runErroredRef.current = true;
+                const msg = `Error: ${error}`;
+                setOutputHistory(prev => {
+                    const next = [...prev, msg];
+                    setOutputIndex(next.length - 1);
+                    return next;
+                });
+                showAndSpeak(msg);
             }
             else if (type === 'terminated') {
                 setOutputHistory(prev => {
                     const next = [...prev, 'Terminated'];
                     //TODO: play sfx
+                    setOutputIndex(next.length - 1);
+                    if(!runErroredRef.current){
+                        if (prev.length === 0) {
+                            showAndSpeak('Execution terminated');
+                        } else {
+                            speakLine('Execution terminated');
+                        }
+                    }
                     return next;
                 });
             }
-            else if (type === 'error') {
-                speakLine(`Error: ${error}`);
-            }
         };
         codeRunnerRef.current = worker
-    }, [speakLine, setOutputHistory, playSoundEffect]);
+    }, [speakLine, showAndSpeak, setOutputIndex, setOutputHistory, playSoundEffect]);
 
     const runCode = useCallback(() => {
+        runErroredRef.current = false;
         setOutputHistory([]); setOutputIndex(-1);
-        speakLine("Running...");
+        showAndSpeak("Running...");
         initCodeRunner();
+        console.log("RUN CODE STRING:\n", code);
         codeRunnerRef.current?.postMessage({ type: 'run', data: code });
-    }, [initCodeRunner, code, setOutputHistory, speakLine, setOutputIndex]);
+    }, [initCodeRunner, code, setOutputHistory, showAndSpeak, setOutputIndex]);
 
     const giveCodeInput = useCallback((input) => {
         codeRunnerRef.current?.postMessage({ type: 'input', data: input });
-    }, [initCodeRunner, code, setOutputHistory, speakLine, setOutputIndex]);
+    }, [initCodeRunner, code, setOutputHistory, showAndSpeak, setOutputIndex]);
 
     // missing originals
 
@@ -225,6 +351,8 @@ export function useCodeActions() {
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
         jumpNextMatch, jumpPrevMatch, startSearch,
+        jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
+        jumpToErrorLine,
         readActiveLine,
         loadFile, saveFile,
         initCodeRunner, runCode, giveCodeInput,
