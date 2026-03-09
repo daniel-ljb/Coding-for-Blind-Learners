@@ -11,11 +11,11 @@ export const demoLibrary = {
     '    else:',
     '        print("Grade: C")',
     '        print("Keep practicing.")',
-    'evaluate_score(85)'
+    'print(evaluate_score(85))'
   ].join('\n'),
 
   '2': [
-    'def sort_int_list(lst):',
+    'def bubble_sort(lst):',
     '    n = len(lst)',
     '    for i in range(n - 1):',
     '        for j in range(n - 1 - i):',
@@ -24,7 +24,7 @@ export const demoLibrary = {
     '                lst[j] = lst[j+1]',
     '                lst[j+1] = temp',
     'lst = [5, 3, 9, 1, 4, 0, 15, 4]',
-    'sort_int_list(lst)',
+    'bubble_sort(lst)',
     'print("Sorted list: " + str(lst))'
   ].join('\n'),
 
@@ -63,7 +63,7 @@ export const demoLibrary = {
   ].join('\n'),
 
   '5': [
-    'def analyze_fibonacci(limit):',
+    'def analyse_fibonacci(limit):',
     '    a, b = 0, 1',
     '    count = 0',
     '    print("Generating sequence up to: " + str(limit))',
@@ -77,7 +77,7 @@ export const demoLibrary = {
     '        a, b = b, a + b',
     '        count += 1',
     '    print("Generated " + str(count) + " terms.")',
-    'analyze_fibonacci(100)'
+    'analyse_fibonacci(100)'
   ].join('\n'),
 
   '6': [
@@ -94,7 +94,7 @@ export const demoLibrary = {
     '            print("Word too short: " + word)',
     '    print("Filter complete. Items kept: " + str(len(results)))',
     '    return results',
-    'filter_text_list(["apple", "elephant", "", "cat", "computer"])'
+    'print(filter_text_list(["apple", "elephant", "", "cat", "computer"]))'
   ].join('\n'),
 
   '7': [

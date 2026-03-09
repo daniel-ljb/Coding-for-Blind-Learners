@@ -35,12 +35,12 @@ export function AppProvider({ children }) {
 //   const [codeRunnerRef, setCodeRunnerRef] = useState(null);
   const codeRunnerRef = useRef(null)
 
-  const setMode = (mode) => {
-    //Handle sfx:
-    if(mode == 'argument') playSoundEffect('confirm1');
-    else if(mode == 'edit') playSoundEffect('confirm2');
-    else if(mode == 'execute') playSoundEffect('confirm3');
-    _setMode(mode);
+  const setMode = (newMode) => {
+    if (newMode === mode) return;
+    if(newMode == 'argument') playSoundEffect('confirm1');
+    else if(newMode == 'edit') playSoundEffect('confirm2');
+    else if(newMode == 'execute') playSoundEffect('confirm3');
+    _setMode(newMode);
   };
 
   const speakLine = (msg, verbose=false) => {

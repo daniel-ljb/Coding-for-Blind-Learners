@@ -9,7 +9,7 @@ const EDIT_COMMAND_HELP = {
     "d": "Next line with same indent",
     "D": "New line after",
     "o": "Out one indent level",
-    "i": "IN one indent level",
+    "i": "In one indent level",
     "r": "Read current line",
     "R": "Verbose read current line",
     "l": "Load file. Opens argument mode. Numbers 0 to 11 give demos, everything else opens folder",
@@ -18,10 +18,10 @@ const EDIT_COMMAND_HELP = {
     "j": "Jump. Opens argument mode. Type where you want to jump and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and opens edit mode.",
-    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
+    "M": "Announces current mode",
 };
-const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "q","m", ]
+const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "m", "M", ]
 const EXECUTE_COMMAND_HELP = {
     "u": "Previous output line",
     "d": "Next output line",
@@ -33,11 +33,11 @@ const EXECUTE_COMMAND_HELP = {
     "j": "Jump in output. Opens argument mode. Type what you want to jump to in the output and press enter. Type nothing to repeat your last jump. Shift J searches in opposite direction.",
     "J": "Repeates search backwards",
     "e": "Executes program and stays in edit mode.",
-    "q": "Queries current mode",
     "m": "Switches between edit and execute mode",
+    "M": "Announces current mode",
     "g": "Jumps to the line that caused the current error. Opens edit mode.",
 };
-const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "q", "m", "g"];
+const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "m", "M", "g"];
 
 function CustomShortcuts() {
     const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, setPreviousMode, previousMode, showAndSpeak, speakLine } = useApp();
@@ -116,7 +116,7 @@ function CustomShortcuts() {
                     else if (editMode) moveToNextIndent();
                     else nextOutput();
                 }
-                else if (c && k === 'q'){
+                else if (c && s && k === 'm'){
                     e.preventDefault();
                     speakLine(`${mode} mode`);
                 }
