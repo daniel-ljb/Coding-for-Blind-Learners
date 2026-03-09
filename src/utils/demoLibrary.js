@@ -11,7 +11,6 @@ export const demoLibrary = {
     '    else:',
     '        print("Grade: C")',
     '        print("Keep practicing.")',
-    '',
     'evaluate_score(85)'
   ].join('\n'),
 
@@ -37,7 +36,6 @@ export const demoLibrary = {
     '        seconds = seconds - 1',
     '        time.sleep(1)',
     '    print("System activated.")',
-    '',
     'run_countdown(10)'
   ].join('\n'),
 
@@ -61,7 +59,6 @@ export const demoLibrary = {
     '            i += 1',
     '            ',
     '    return area',
-    '',
     'calculate_area(5)'
   ].join('\n'),
 
@@ -80,7 +77,6 @@ export const demoLibrary = {
     '        a, b = b, a + b',
     '        count += 1',
     '    print("Generated " + str(count) + " terms.")',
-    '',
     'analyze_fibonacci(100)'
   ].join('\n'),
 
@@ -96,10 +92,8 @@ export const demoLibrary = {
     '            print("Discarding empty string.")',
     '        else:',
     '            print("Word too short: " + word)',
-    '',
     '    print("Filter complete. Items kept: " + str(len(results)))',
     '    return results',
-    '',
     'filter_text_list(["apple", "elephant", "", "cat", "computer"])'
   ].join('\n'),
 
@@ -108,7 +102,6 @@ export const demoLibrary = {
     '    current = 0',
     '    found = False',
     '    print("Starting search for: " + str(target))',
-    '',
     '    while current < max_range:',
     '        print("Checking value: " + str(current))',
     '        if lst[current] == target:',
@@ -116,12 +109,10 @@ export const demoLibrary = {
     '            found = True',
     '            break',
     '        current += 1',
-    '',
     '    if found:',
     '        print("Search successful.")',
     '    else:',
     '        print("Target not in range.")',
-    '',
     'search_for_value(7, 20, list(range(20)))'
   ].join('\n'),
 
@@ -130,19 +121,15 @@ export const demoLibrary = {
     '    def __init__(self, owner, balance=0):',
     '        self.owner = owner',
     '        self.balance = balance',
-    '',
     '    def deposit(self, amount):',
     '        self.balance += amount',
-    '',
     '    def withdraw(self, amount):',
     '        if amount > self.balance:',
     '            print("Insufficient funds")',
     '        else:',
     '            self.balance -= amount',
-    '',
     '    def __str__(self):',
     '        return f"{self.owner}: £{self.balance}"',
-    '',
     'account = BankAccount("Alice", 100)',
     'account.deposit(50)',
     'print(account)'
@@ -155,12 +142,10 @@ export const demoLibrary = {
     '    if n in (0, 1):',
     '        return 1',
     '    return n * factorial(n - 1)',
-    '',
     'def fibonacci(n):',
     '    if n <= 1:',
     '        return n',
     '    return fibonacci(n - 1) + fibonacci(n - 2)',
-    '',
 	'n = int(input("Enter number:"))',
     'print(f"Factorial {n} is {factorial(n)}")',
     'print(f"Fibonacci {n} is {fibonacci(n)}")'
@@ -176,7 +161,6 @@ export const demoLibrary = {
     '            row.append((r, c))',
     '        grid.append(row)',
     '    return grid',
-    '',
     'def print_grid(grid):',
     '    for row in grid:',
     '        print(row)',
