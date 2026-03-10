@@ -110,10 +110,11 @@ function CodeEditor() {
     const isAtEnd = selectionStart === value.length;
     if ((e.key === '#' && !isInsideString()) || (e.key === 'Tab' && !e.shiftKey && isAtEnd)) {
       e.preventDefault();
-      const newNodes = [...nodes];
-      newNodes[index] = { ...node, comment: node.comment || "" };
-      setNodes(newNodes);
-      setTimeout(() => inputRefs.current[`${node.id}-cmt`]?.focus(), 0);
+      //Comments disabled due to errors close to deadline
+    //   const newNodes = [...nodes];
+    //   newNodes[index] = { ...node, comment: node.comment || "" };
+    //   setNodes(newNodes);
+    //   setTimeout(() => inputRefs.current[`${node.id}-cmt`]?.focus(), 0);
       return;
     }
 
