@@ -11,7 +11,7 @@ export const demoLibrary = {
     '    else:',
     '        print("Grade: C")',
     '        print("Keep practicing.")',
-    'print(evaluate_score(85))'
+    'evaluate_score(85)'
   ].join('\n'),
 
   '2': [
