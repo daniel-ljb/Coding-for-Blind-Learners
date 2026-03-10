@@ -1,7 +1,7 @@
 export const BLOCK_RULES = {
   "if": { "hasExpression": true, "isContinuation": false},
   "elif": { "hasExpression": true, "isContinuation": true, "validParents": ["if", "elif"]},
-  "else": { "hasExpression": false, "isContinuation": true, "validParents": ["if", "elif", "try", "except", "for", "while"]},
+  "else": { "hasExpression": true, "isContinuation": true, "validParents": ["if", "elif", "try", "except", "for", "while"]},
   "def": { "hasExpression": true, "isContinuation": false },
   "class": { "hasExpression": true, "isContinuation": false},
   "for": { "hasExpression": true, "isContinuation": false },

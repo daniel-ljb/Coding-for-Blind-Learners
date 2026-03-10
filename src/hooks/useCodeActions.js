@@ -333,8 +333,6 @@ export function useCodeActions() {
         codeRunnerRef.current?.postMessage({ type: 'input', data: input });
     }, [initCodeRunner, code, setOutputHistory, showAndSpeak, setOutputIndex]);
 
-    // missing originals
-
     const loadDemo = useCallback((id) => {
         if(!id in demoLibrary) {
             speakLine('Demo not found')

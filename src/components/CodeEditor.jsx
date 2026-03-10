@@ -12,7 +12,6 @@ function CodeEditor() {
   const lastSyncedCode = useRef(code);
   const idCounter = useRef(0);
 
-  // auto focus on mode and active line change
   useEffect(() => {
     if (mode === 'edit') {
       const activeNode = nodes[activeLine];
@@ -69,7 +68,6 @@ function CodeEditor() {
     });
   };
   
-  // When code changes by external means (like terminal commands), update nodes
   useEffect(() => {
     if (code === lastSyncedCode.current) return;
     idCounter.current = 0;
@@ -77,7 +75,6 @@ function CodeEditor() {
     lastSyncedCode.current = code;
   }, [code]);
 
-  // When nodes change (like user edits), update code
   useEffect(() => {
     const pythonString = nodes.map(node => {
       const spaces = "    ".repeat(node.indent);
@@ -110,18 +107,17 @@ function CodeEditor() {
       return quotes % 2 !== 0;
     };
 
-    // 1. Comment Triggers (# or Tab at end)
     const isAtEnd = selectionStart === value.length;
     if ((e.key === '#' && !isInsideString()) || (e.key === 'Tab' && !e.shiftKey && isAtEnd)) {
       e.preventDefault();
-      const newNodes = [...nodes];
-      newNodes[index] = { ...node, comment: node.comment || "" };
-      setNodes(newNodes);
-      setTimeout(() => inputRefs.current[`${node.id}-cmt`]?.focus(), 0);
+      //Comments disabled due to errors close to deadline
+    //   const newNodes = [...nodes];
+    //   newNodes[index] = { ...node, comment: node.comment || "" };
+    //   setNodes(newNodes);
+    //   setTimeout(() => inputRefs.current[`${node.id}-cmt`]?.focus(), 0);
       return;
     }
 
-    // 2. Keyword Conversion
     const trimmed = node.content?.trim().toLowerCase();
     if (e.key === ' ' && node.type === 'command' && BLOCK_RULES[trimmed]) {
       e.preventDefault();
@@ -131,7 +127,6 @@ function CodeEditor() {
       setTimeout(() => inputRefs.current[node.id]?.focus(), 0);
     }
 
-    // 3. New Line logic
     if (e.key === 'Enter') {
       e.preventDefault();
       const nextId = Math.random().toString(36).substr(2, 9);
@@ -145,17 +140,14 @@ function CodeEditor() {
       setTimeout(() => inputRefs.current[nextId]?.focus(), 0);
     }
 
-    // 4. Backspace: Line Deletion
     if (e.key === 'Backspace' && selectionStart === 0) {
       if (!node.content && node.comment === null) {
         e.preventDefault();
         const prevIndex = index - 1;
         let newNodes = nodes.filter((_, i) => i !== index);
         
-        // If deleting a keyword node, unindent all nested code
         if (node.type === 'keyword') {
           const keywordIndent = node.indent;
-          // Find the range of nested code
           let endOfBlock = index;
           for (let i = index; i < newNodes.length; i++) {
             if (newNodes[i].indent > keywordIndent) {
@@ -164,7 +156,6 @@ function CodeEditor() {
               break;
             }
           }
-          // Unindent all nested lines
           newNodes = newNodes.map((n, i) => {
             if (i >= index && i <= endOfBlock && n.indent > keywordIndent) {
               return { ...n, indent: n.indent - 1 };
