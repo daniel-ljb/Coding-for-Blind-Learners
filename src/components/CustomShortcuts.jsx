@@ -188,7 +188,7 @@ function CustomShortcuts() {
                     setPreviousMode(mode);
                     setMode('argument'); //TODO: Way to store previous mode
                 }
-                else if(c && s && k === 's') {
+                else if(c && k === 's') {
                     e.preventDefault();
                     if(executeMode) return;
                     saveFile();
