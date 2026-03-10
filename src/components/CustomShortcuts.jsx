@@ -21,7 +21,27 @@ const EDIT_COMMAND_HELP = {
     "m": "Switches between edit and execute mode",
     "M": "Announces current mode",
 };
-const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "m", "M", ]
+// const EDIT_COMMANDS = ["u", "shift u", "d", "shift d", "o", "i", "r", "shift r", "l", "s", "slash", "j", "shift j", "e", "m", "M", ]
+const EDIT_COMMANDS = [
+    "For each command use control plus the first letter of the command",
+    "up",
+    "down",
+    "out",
+    "in",
+    "read",
+    "load",
+    "save",
+    "jump",
+    "execute",
+    "For the rest of the commands use control plus",
+    "m to go to execute mode",
+    "question mark for help with a command",
+    "shift u for new line before",
+    "shift d for new line after",
+    "shift r for read verbose",
+    "shift j for jump backwards",
+    "shift m to announce mode",
+]
 const EXECUTE_COMMAND_HELP = {
     "u": "Previous output line",
     "d": "Next output line",
@@ -37,7 +57,27 @@ const EXECUTE_COMMAND_HELP = {
     "M": "Announces current mode",
     "g": "Jumps to the line that caused the current error. Opens edit mode.",
 };
-const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "m", "M", "g"];
+// const EXECUTE_COMMANDS = [ "u", "d", "o", "i", "r", "shift r", "slash", "j", "shift j","e", "m", "M", "g"];
+const EXECUTE_COMMANDS = [
+    "For each command use control plus the first letter of the command",
+    "up",
+    "down",
+    "read",
+    "load",
+    "save",
+    "jump",
+    "execute",
+    "For the rest of the commands use control plus",
+    "m to go to edit mode",
+    "g to jump to error",
+    "question mark for help with a command",
+    "shift u for new line before",
+    "shift u for new line before",
+    "shift d for new line after",
+    "shift r for read verbose",
+    "shift j for jump backwards",
+    "shift m to announce mode",
+]
 
 function CustomShortcuts() {
     const { code, activeLine, mode, setMode, argumentCallback, setArgumentCallback, setPreviousMode, previousMode, showAndSpeak, speakLine } = useApp();
@@ -56,7 +96,7 @@ function CustomShortcuts() {
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            console.log('keydown', e.key, e.ctrlKey, e.shiftKey, e.altKey);
+            // console.log('keydown', e.key, e.ctrlKey, e.shiftKey, e.altKey);
             const k = e.key.toLowerCase()
             const c = e.ctrlKey
             const s = e.shiftKey
@@ -158,16 +198,16 @@ function CustomShortcuts() {
                     if(s) {
                         speakLine("Enter key for help")
                         setArgumentCallback(() => (argument) => {
-                            if (argument == null) return;
-                            const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument]
+                            if (argument == null || argument.length == 0) return;
+                            const help = (editMode ? EDIT_COMMAND_HELP : EXECUTE_COMMAND_HELP)[argument[0]]
                             if (help == null) showAndSpeak("Invalid command.")
                             else showAndSpeak(help);
                         });
                         setPreviousMode(mode);
-                        setMode('argument'); //TODO: Way to store previous mode
+                        setMode('argument');
                     } else {
-                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", control ")
-                        showAndSpeak(`Available commands: control ${avilableCommands}`)
+                        const avilableCommands = (editMode ? EDIT_COMMANDS : EXECUTE_COMMANDS).join(", ")
+                        showAndSpeak(avilableCommands)
                     }
                 }
                 else if(c && k === 'j') {
