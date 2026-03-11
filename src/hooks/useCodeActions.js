@@ -20,18 +20,19 @@ export function useCodeActions() {
         speakLine(lines[activeLine], verbose);
     }, [code, speakLine]);
 
-    const updateAndSpeakOutputLine = useCallback((index) => {
+    const updateAndSpeakOutputLine = useCallback((index, verbose = false) => {
+        console.log(verbose ? `Repeating output line ${index} verbosely` : `Repeating output line ${index}`);
         const safeIdx = Math.max(0, Math.min(index, outputHistory.length - 1));
         setOutputIndex(safeIdx)
-        showAndSpeak(outputHistory[safeIdx])
+        showAndSpeak(outputHistory[safeIdx], verbose)
     }, [showAndSpeak, outputHistory, setOutputIndex])
 
-    const repeatOutput = useCallback(() => {
+    const repeatOutput = useCallback((verbose = false) => {
         if (outputHistory.length === 0) {
             showAndSpeak("No output");
             return;
         }
-        updateAndSpeakOutputLine(outputIndex);
+        updateAndSpeakOutputLine(outputIndex, verbose);
     }, [outputIndex, updateAndSpeakOutputLine, outputHistory]);
 
     const nextOutput = useCallback(() => {
@@ -284,7 +285,6 @@ export function useCodeActions() {
                 const msg = `Input required: ${data}`;
                 setOutputHistory(prev => {
                     const next = [...prev, msg];
-                    //TODO: play sfx
                     setOutputIndex(next.length - 1);
                     return next;
                 });
@@ -304,7 +304,6 @@ export function useCodeActions() {
             else if (type === 'terminated') {
                 setOutputHistory(prev => {
                     const next = [...prev, 'Terminated'];
-                    //TODO: play sfx
                     setOutputIndex(next.length - 1);
                     if(!runErroredRef.current){
                         if (prev.length === 0) {
@@ -348,7 +347,7 @@ export function useCodeActions() {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
-        jumpNextMatch, jumpPrevMatch, startSearch,
+        jumpNextMatch, jumpPrevMatch, jumpToAny,
         jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
         jumpToErrorLine,
         readActiveLine,

@@ -32,7 +32,6 @@ export function AppProvider({ children }) {
 
   const announcerClarify = (msg) => msg.replace(/\bdef\b/g, 'deaf');
 
-//   const [codeRunnerRef, setCodeRunnerRef] = useState(null);
   const codeRunnerRef = useRef(null)
 
   const setMode = (newMode) => {
@@ -59,9 +58,9 @@ export function AppProvider({ children }) {
     setTerminalOutput_(msg);
   };
 
-  const showAndSpeak = (msg) => {
+  const showAndSpeak = (msg, verbose = false) => {
     setTerminalOutput(msg);
-    speakLine(msg);
+    speakLine(msg, verbose);
   };
 
   const handleActiveLineChange = (newActiveLine) => {

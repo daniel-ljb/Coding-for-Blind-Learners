@@ -85,7 +85,7 @@ function CustomShortcuts() {
         createLineAfter, createLineBefore,
         moveToNextIndent, moveToPrevIndent,
         moveOutOneLevel, moveInOneLevel,
-        startSearch, jumpNextMatch, jumpPrevMatch,
+        jumpToAny, jumpNextMatch, jumpPrevMatch,
         jumpNextOutputMatch, jumpPrevOutputMatch, jumpToOutput,
         jumpToErrorLine,
         readActiveLine, readActiveBlock, readActiveFunction,
@@ -172,9 +172,8 @@ function CustomShortcuts() {
                 }
                 else if(c && k === 'r') {
                     e.preventDefault();
-                    if(s && editMode) readActiveLine(true); //Verbose
-                    else if (editMode) readActiveLine(false);
-                    else repeatOutput();
+                    if (editMode) readActiveLine(s);
+                    else repeatOutput(s);
                 }
                 else if(c && k === 'l') {
                     e.preventDefault();
@@ -228,7 +227,7 @@ function CustomShortcuts() {
                     setArgumentCallback(() => (argument) => {
                         if(argument == null) return;
 
-                        if(argument !== '') startSearch(argument);
+                        if(argument !== '') jumpToAny(argument);
                         if(s) jumpPrevMatch();
                         else jumpNextMatch();
                     });
