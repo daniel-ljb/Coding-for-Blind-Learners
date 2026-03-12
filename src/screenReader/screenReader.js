@@ -110,16 +110,16 @@ const SFX = {
 };
 
 const audioCache = new Map();
-const lastPlayTime = new Map(); // store last play timestamp
+const lastPlayTime = new Map();
 
 export function playSfx(name, { volume = 1, rate = 1, overlap = true } = {}) {
     const src = SFX[name];
     if (!src) return;
 
-    const now = performance.now(); // high-resolution timestamp
+    const now = performance.now();
     const last = lastPlayTime.get(name) || 0;
 
-    if (now - last < 0.2) return; // skip if played in the last 0.2ms
+    if (now - last < 0.2) return; //skip if played in the last 0.2ms
     lastPlayTime.set(name, now);
 
     let audio;
